@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	log "go-micro.dev/v5/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,6 +42,7 @@ type CollClient interface {
 	FindOneAndUpdate(context.Context, interface{}, interface{}, ...*options.FindOneAndUpdateOptions) *mongo.SingleResult
 	FindOneAndDelete(context.Context, interface{}, ...*options.FindOneAndDeleteOptions) *mongo.SingleResult
 	InsertOne(context.Context, interface{}, ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
+	InsertMany(context.Context, []interface{}, ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
 	DeleteOne(context.Context, interface{}, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
 	DeleteMany(context.Context, interface{}, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
 	UpdateOne(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
@@ -209,6 +211,22 @@ func (h *Helper) Insert(db, coll string, data interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err = c.InsertOne(ctx, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *Helper) InsertMany(db, coll string, data []interface{}) error {
+	c, err := h.NewCollCli(db, coll)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	_, err = c.InsertMany(ctx, data)
 	if err != nil {
 		return err
 	}
