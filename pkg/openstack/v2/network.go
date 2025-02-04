@@ -6,6 +6,8 @@ import (
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/loadbalancers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/security/groups"
@@ -66,6 +68,18 @@ func (h *Helper) AttachNetworkToRouter(id string, opts routers.AddInterfaceOpts)
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.AddInterface(ctx, h.Network, id, opts).Extract()
+}
+
+func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := groups.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return groups.ExtractGroups(pages)
 }
 
 func (h *Helper) CreateSecurityGroup(opts groups.CreateOpts) (*groups.SecGroup, error) {
@@ -199,4 +213,28 @@ func (h *Helper) CreateShareNetwork(client *gophercloud.ServiceClient, opts shar
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return sharenetworks.Create(ctx, client, opts).Extract()
+}
+
+func (h *Helper) ListLoadBalancers(opts loadbalancers.ListOpts) ([]loadbalancers.LoadBalancer, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := loadbalancers.List(h.Loadbalancer, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadbalancers.ExtractLoadBalancers(pages)
+}
+
+func (h *Helper) ListFloatingIPs(opts floatingips.ListOpts) ([]floatingips.FloatingIP, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := floatingips.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return floatingips.ExtractFloatingIPs(pages)
 }

@@ -20,11 +20,12 @@ var (
 type Helper struct {
 	Provider *gophercloud.ProviderClient
 
-	Identity *gophercloud.ServiceClient
-	Compute  *gophercloud.ServiceClient
-	Network  *gophercloud.ServiceClient
-	Storage  *gophercloud.ServiceClient
-	Share    *gophercloud.ServiceClient
+	Identity     *gophercloud.ServiceClient
+	Compute      *gophercloud.ServiceClient
+	Network      *gophercloud.ServiceClient
+	Loadbalancer *gophercloud.ServiceClient
+	Storage      *gophercloud.ServiceClient
+	Share        *gophercloud.ServiceClient
 
 	*Options
 }
@@ -75,6 +76,12 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		return nil, err
 	}
 
+	loadBalancerCli, err := newLoadBalancerCli(provider)
+	if err != nil {
+		log.Errorf("failed to create loadbalancer client: %s", err.Error())
+		return nil, err
+	}
+
 	storageCli, err := newStorageCli(provider)
 	if err != nil {
 		log.Errorf("failed to create storage client: %s", err.Error())
@@ -88,12 +95,13 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	}
 
 	return &Helper{
-		Provider: provider,
-		Identity: identityCli,
-		Compute:  computeCli,
-		Network:  networkCli,
-		Storage:  storageCli,
-		Share:    shareCli,
+		Provider:     provider,
+		Identity:     identityCli,
+		Compute:      computeCli,
+		Network:      networkCli,
+		Loadbalancer: loadBalancerCli,
+		Storage:      storageCli,
+		Share:        shareCli,
 	}, nil
 }
 
@@ -196,6 +204,15 @@ func newComputeCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceCl
 
 func newNetworkCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
 	return openstack.NewNetworkV2(
+		provider,
+		gophercloud.EndpointOpts{
+			Region: os.Getenv("OS_REGION_NAME"),
+		},
+	)
+}
+
+func newLoadBalancerCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
+	return openstack.NewLoadBalancerV2(
 		provider,
 		gophercloud.EndpointOpts{
 			Region: os.Getenv("OS_REGION_NAME"),
