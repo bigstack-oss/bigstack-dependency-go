@@ -3,13 +3,13 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/users"
 )
 
 func (h *Helper) ListUsers(opts *users.ListOpts) ([]users.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := users.List(h.Identity, opts).AllPages(ctx)
@@ -46,7 +46,7 @@ func (h *Helper) GetUserIdByName(name string) (string, error) {
 }
 
 func (h *Helper) CreateUser(opts users.CreateOpts) (*users.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return users.Create(
 		ctx,
@@ -56,7 +56,7 @@ func (h *Helper) CreateUser(opts users.CreateOpts) (*users.User, error) {
 }
 
 func (h *Helper) GetUserByName(name string) (*users.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := users.List(h.Identity, &users.ListOpts{Name: name}).AllPages(ctx)

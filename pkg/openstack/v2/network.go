@@ -3,8 +3,8 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
@@ -17,7 +17,7 @@ import (
 )
 
 func (h *Helper) ListNetworks(opts networks.ListOpts) ([]networks.Network, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := networks.List(h.Network, opts).AllPages(ctx)
@@ -45,49 +45,49 @@ func (h *Helper) GetNetworkByName(opts networks.ListOpts) (*networks.Network, er
 }
 
 func (h *Helper) CreateNetwork(opts networks.CreateOpts) (*networks.Network, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return networks.Create(ctx, h.Network, opts).Extract()
 }
 
 func (h *Helper) CreateSubnet(opts subnets.CreateOpts) (*subnets.Subnet, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return subnets.Create(ctx, h.Network, opts).Extract()
 }
 
 func (h *Helper) CreateRouter(opts routers.CreateOpts) (*routers.Router, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.Create(ctx, h.Network, opts).Extract()
 }
 
 func (h *Helper) AttachNetworkToRouter(id string, opts routers.AddInterfaceOpts) (*routers.InterfaceInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.AddInterface(ctx, h.Network, id, opts).Extract()
 }
 
 func (h *Helper) CreateSecurityGroup(opts groups.CreateOpts) (*groups.SecGroup, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return groups.Create(ctx, h.Network, opts).Extract()
 }
 
 func (h *Helper) CreateSecurityGroupRule(opts rules.CreateOpts) (*rules.SecGroupRule, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return rules.Create(ctx, h.Network, opts).Extract()
 }
 
 func (h *Helper) UpdateNetworkQuotas(projectId string, opts quotas.UpdateOpts) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return quotas.Update(ctx, h.Network, projectId, opts).Err
 }
 
 func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := ports.List(
@@ -115,7 +115,7 @@ func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
 }
 
 func (h *Helper) GetSubnetByName(opts subnets.ListOpts) (*subnets.Subnet, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := subnets.List(h.Network, opts).AllPages(ctx)
@@ -138,7 +138,7 @@ func (h *Helper) GetSubnetByName(opts subnets.ListOpts) (*subnets.Subnet, error)
 }
 
 func (h *Helper) GetSecurityGroupByName(opts groups.ListOpts) (*groups.SecGroup, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := groups.List(h.Network, opts).AllPages(ctx)
@@ -161,19 +161,19 @@ func (h *Helper) GetSecurityGroupByName(opts groups.ListOpts) (*groups.SecGroup,
 }
 
 func (h *Helper) GetSecurityGroup(id string) (*groups.SecGroup, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return groups.Get(ctx, h.Network, id).Extract()
 }
 
 func (h *Helper) DeleteSecurityGroupRule(id string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return rules.Delete(ctx, h.Network, id).Err
 }
 
 func (h *Helper) GetShareNetworkByName(opts sharenetworks.ListOpts) (*sharenetworks.ShareNetwork, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := sharenetworks.ListDetail(h.Share, opts).AllPages(ctx)
@@ -196,7 +196,7 @@ func (h *Helper) GetShareNetworkByName(opts sharenetworks.ListOpts) (*sharenetwo
 }
 
 func (h *Helper) CreateShareNetwork(client *gophercloud.ServiceClient, opts sharenetworks.CreateOpts) (*sharenetworks.ShareNetwork, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return sharenetworks.Create(ctx, client, opts).Extract()
 }

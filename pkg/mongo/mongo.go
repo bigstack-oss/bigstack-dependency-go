@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	log "go-micro.dev/v5/logger"
@@ -179,7 +178,7 @@ func (h *Helper) Get(db, coll string, filter bson.M) (*mongo.SingleResult, error
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 
 	result := c.FindOne(ctx, filter)
@@ -192,7 +191,7 @@ func (h *Helper) GetCount(db, coll string, filter bson.M) (int64, error) {
 		return 0, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	count, err := c.CountDocuments(ctx, filter)
 	defer cancel()
 	if err != nil {
@@ -208,7 +207,7 @@ func (h *Helper) Insert(db, coll string, data interface{}) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	_, err = c.InsertOne(ctx, data)
 	if err != nil {
@@ -240,7 +239,7 @@ func (h *Helper) UpdateOne(db, coll string, filter interface{}, data interface{}
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	_, err = c.UpdateOne(ctx, filter, data, opts...)
 	if err != nil {
@@ -256,7 +255,7 @@ func (h *Helper) UpdateMany(db, coll string, filter interface{}, data interface{
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	_, err = c.UpdateMany(ctx, filter, data)
 	if err != nil {
@@ -272,7 +271,7 @@ func (h *Helper) DeleteOne(db, coll string, filter interface{}) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	_, err = c.DeleteOne(ctx, filter)
 	if err != nil {
@@ -288,7 +287,7 @@ func (h *Helper) DeleteAll(db, coll string, filter interface{}) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	_, err = c.DeleteMany(ctx, filter)
 	if err != nil {
@@ -304,7 +303,7 @@ func (h *Helper) GetAllCollections(db string) ([]string, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	collections, err := dbCli.ListCollectionNames(ctx, bson.M{})
 	if err != nil {

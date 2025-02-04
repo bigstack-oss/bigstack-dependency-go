@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -98,7 +98,7 @@ func (h *Helper) LoginAdmin() error {
 		h.Client.RestyClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
+	ctx, cancel := context.WithTimeout(wait.CtxMinutes(2))
 	defer cancel()
 	token, err := h.Client.LoginAdmin(
 		ctx,
@@ -118,13 +118,13 @@ func (h *Helper) LoginAdmin() error {
 }
 
 func (h *Helper) LogoutUserSession(realm, sessionID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.LogoutUserSession(ctx, h.Token, realm, sessionID)
 }
 
 func (h *Helper) CreateClient(realm string, opts gocloak.Client) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.CreateClient(ctx, h.Token, realm, opts)
 }

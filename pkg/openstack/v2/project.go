@@ -3,13 +3,13 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/projects"
 )
 
 func (h *Helper) ListProjects(opts *projects.ListOpts) ([]projects.Project, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := projects.List(h.Identity, opts).AllPages(ctx)
@@ -41,7 +41,7 @@ func (h *Helper) GetProjectIdByName(name string) (string, error) {
 }
 
 func (h *Helper) CreateProject(name string) (*projects.Project, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	true := true

@@ -3,21 +3,21 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/hypervisors"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/quotasets"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 )
 
 func (h *Helper) UpdateComputeQuotas(projectId string, opts quotasets.UpdateOpts) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return quotasets.Update(ctx, h.Compute, projectId, opts).Err
 }
 
 func (h *Helper) ListServers(opts servers.ListOpts) ([]servers.Server, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := servers.List(h.Compute, opts).AllPages(ctx)
@@ -29,13 +29,13 @@ func (h *Helper) ListServers(opts servers.ListOpts) ([]servers.Server, error) {
 }
 
 func (h *Helper) GetHypervisorStatistics() (*hypervisors.Statistics, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return hypervisors.GetStatistics(ctx, h.Compute).Extract()
 }
 
 func (h *Helper) ListHypervisors(opts hypervisors.ListOpts) ([]hypervisors.Hypervisor, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := hypervisors.List(h.Compute, hypervisors.ListOpts{}).AllPages(ctx)
@@ -67,7 +67,7 @@ func (h *Helper) GetHypervisorByHostname(hostname string) (*hypervisors.Hypervis
 }
 
 func (h *Helper) GetHypervisorUpTime(id string) (*hypervisors.Uptime, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return hypervisors.GetUptime(ctx, h.Compute, id).Extract()
 }
