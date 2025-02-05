@@ -74,5 +74,9 @@ func GetQueryCursor(stmt string) (*api.QueryTableResult, context.CancelFunc, err
 }
 
 func (h *Helper) Close() {
+	if h.ConnectClient == nil {
+		return
+	}
+
 	h.ConnectClient.Close()
 }

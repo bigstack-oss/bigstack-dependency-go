@@ -314,6 +314,10 @@ func (h *Helper) GetAllCollections(db string) ([]string, error) {
 }
 
 func (h *Helper) Close() {
+	if h.Client == nil {
+		return
+	}
+
 	err := h.Client.Disconnect(context.Background())
 	if err != nil {
 		log.Errorf("failed to close mongo connection: %s", err.Error())
