@@ -37,7 +37,7 @@ func (h *Helper) ListShares(opts shares.ListOpts) ([]shares.Share, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
-	pages, err := shares.ListDetail(h.Storage, opts).AllPages(ctx)
+	pages, err := shares.ListDetail(h.Share, opts).AllPages(ctx)
 	if err != nil {
 		return nil, err
 	}
