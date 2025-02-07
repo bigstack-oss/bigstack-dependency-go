@@ -21,7 +21,9 @@ type Client interface {
 	Login(context.Context, string, string, string, string, string) (*gocloak.JWT, error)
 	LoginAdmin(context.Context, string, string, string) (*gocloak.JWT, error)
 	GetUsers(context.Context, string, string, gocloak.GetUsersParams) ([]*gocloak.User, error)
+	GetClients(context.Context, string, string, gocloak.GetClientsParams) ([]*gocloak.Client, error)
 	CreateClient(context.Context, string, string, gocloak.Client) (string, error)
+	CreateClientProtocolMapper(context.Context, string, string, string, gocloak.ProtocolMapperRepresentation) (string, error)
 	LogoutUserSession(context.Context, string, string, string) error
 }
 
@@ -127,4 +129,16 @@ func (h *Helper) CreateClient(realm string, opts gocloak.Client) (string, error)
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.CreateClient(ctx, h.Token, realm, opts)
+}
+
+func (h *Helper) GetClients(realm string, params gocloak.GetClientsParams) ([]*gocloak.Client, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetClients(ctx, h.Token, realm, params)
+}
+
+func (h *Helper) CreateClientProtocolMapper(realm, clientID string, opts gocloak.ProtocolMapperRepresentation) (string, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.CreateClientProtocolMapper(ctx, h.Token, realm, clientID, opts)
 }
