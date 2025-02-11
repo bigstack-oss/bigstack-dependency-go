@@ -24,6 +24,7 @@ type Client interface {
 	GetClients(context.Context, string, string, gocloak.GetClientsParams) ([]*gocloak.Client, error)
 	CreateClient(context.Context, string, string, gocloak.Client) (string, error)
 	CreateClientProtocolMapper(context.Context, string, string, string, gocloak.ProtocolMapperRepresentation) (string, error)
+	GetClientSecret(ctx context.Context, token, realm, idOfClient string) (*gocloak.CredentialRepresentation, error)
 	LogoutUserSession(context.Context, string, string, string) error
 }
 
@@ -141,4 +142,10 @@ func (h *Helper) CreateClientProtocolMapper(realm, clientID string, opts gocloak
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.CreateClientProtocolMapper(ctx, h.Token, realm, clientID, opts)
+}
+
+func (h *Helper) GetClientSecret(realm, clientID string) (*gocloak.CredentialRepresentation, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetClientSecret(ctx, h.Token, realm, clientID)
 }
