@@ -55,7 +55,12 @@ func (q *Query) Limit(params string) *Query {
 }
 
 func (q *Query) Count(params string) *Query {
-	q.stages = append(q.stages, fmt.Sprintf(`|> count(%s)`, params))
+	if params == "" {
+		q.stages = append(q.stages, "|> count()")
+	} else {
+		q.stages = append(q.stages, fmt.Sprintf(`|> count(%s)`, params))
+	}
+
 	return q
 }
 
