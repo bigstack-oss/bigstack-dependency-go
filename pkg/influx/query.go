@@ -25,7 +25,7 @@ func (q *Query) Measurement(params string) *Query {
 }
 
 func (q *Query) Filter(params string) *Query {
-	q.stages = append(q.stages, fmt.Sprintf(`|> filter(fn: (r) => r.%s)`, params))
+	q.stages = append(q.stages, fmt.Sprintf(`|> filter(%s)`, params))
 	return q
 }
 
