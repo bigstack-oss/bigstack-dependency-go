@@ -64,6 +64,36 @@ func (q *Query) Count(params string) *Query {
 	return q
 }
 
+func (q *Query) Different() *Query {
+	q.stages = append(q.stages, "|> difference()")
+	return q
+}
+
+func (q *Query) AggregateWindow(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> aggregateWindow(%s)`, params))
+	return q
+}
+
+func (q *Query) Map(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> map(%s)`, params))
+	return q
+}
+
+func (q *Query) Last() *Query {
+	q.stages = append(q.stages, "|> last()")
+	return q
+}
+
+func (q *Query) Derivative(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> derivative(%s)`, params))
+	return q
+}
+
+func (q *Query) Max(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> max(%s)`, params))
+	return q
+}
+
 func (q *Query) Rename(params string) *Query {
 	q.stages = append(q.stages, fmt.Sprintf(`|> rename(%s)`, params))
 	return q
@@ -76,6 +106,11 @@ func (q *Query) Keep(params string) *Query {
 
 func (q *Query) Distinct(params string) *Query {
 	q.stages = append(q.stages, fmt.Sprintf(`|> distinct(%s)`, params))
+	return q
+}
+
+func (q *Query) Top(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> top(%s)`, params))
 	return q
 }
 
