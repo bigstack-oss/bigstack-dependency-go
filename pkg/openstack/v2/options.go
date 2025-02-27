@@ -84,6 +84,18 @@ func AuthUrl(AuthUrl string) Option {
 	}
 }
 
+func AuthSource(authSource string) Option {
+	return func(o *Options) {
+		o.Auth.Source = authSource
+	}
+}
+
+func AuthFile(authFile string) Option {
+	return func(o *Options) {
+		o.Auth.File = authFile
+	}
+}
+
 func UserID(userID string) Option {
 	return func(o *Options) {
 		o.User.ID = userID
