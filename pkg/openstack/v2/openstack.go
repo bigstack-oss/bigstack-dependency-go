@@ -1,8 +1,10 @@
 package openstack
 
 import (
+	"bufio"
 	"context"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -140,6 +142,10 @@ func genAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 		return openstack.AuthOptionsFromEnv()
 	}
 
+	if opts.Auth.Source == "file" {
+		parseAuthFile(opts)
+	}
+
 	return gophercloud.AuthOptions{
 		IdentityEndpoint: opts.Auth.Url,
 		Username:         opts.User.Name,
@@ -148,6 +154,43 @@ func genAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 		DomainName:       opts.Domain.Name,
 		AllowReauth:      opts.EnableAutoRenew,
 	}, nil
+}
+
+func parseAuthFile(opts *Options) {
+	openedFile, err := os.Open(opts.Auth.File)
+	if err != nil {
+		log.Errorf("failed to load ops conf: %s (%s)", opts.Auth.File, err.Error())
+		return
+	}
+	defer openedFile.Close()
+	s := bufio.NewScanner(openedFile)
+	s.Split(bufio.ScanLines)
+
+	for s.Scan() {
+		switch {
+		case strings.Contains(s.Text(), "OS_AUTH_URL"):
+			words := strings.Split(s.Text(), "=")
+			opts.IdentityEndpoint = words[1]
+		case strings.Contains(s.Text(), "OS_AUTH_TYPE"):
+			words := strings.Split(s.Text(), "=")
+			opts.Auth.Type = words[1]
+		case strings.Contains(s.Text(), "OS_USERNAME"):
+			words := strings.Split(s.Text(), "=")
+			opts.User.Name = words[1]
+		case strings.Contains(s.Text(), "OS_USER_DOMAIN_NAME"):
+			words := strings.Split(s.Text(), "=")
+			opts.User.Domain.Name = words[1]
+		case strings.Contains(s.Text(), "OS_PASSWORD"):
+			words := strings.Split(s.Text(), "=")
+			opts.Password = words[1]
+		case strings.Contains(s.Text(), "OS_PROJECT_NAME"):
+			words := strings.Split(s.Text(), "=")
+			opts.Project.Name = words[1]
+		case strings.Contains(s.Text(), "OS_PROJECT_DOMAIN_NAME"):
+			words := strings.Split(s.Text(), "=")
+			opts.Project.Domain.Name = words[1]
+		}
+	}
 }
 
 func NewConf() (*Options, error) {

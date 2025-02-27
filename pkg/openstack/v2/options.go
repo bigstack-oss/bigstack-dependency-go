@@ -32,13 +32,15 @@ type Options struct {
 }
 
 type Auth struct {
+	Source          string `json:"source" yaml:"source"`
 	Type            string `json:"type" yaml:"type"`
 	Url             string `json:"url" yaml:"url"`
 	Username        string `json:"username" yaml:"username"`
 	Password        string `json:"password" yaml:"password"`
 	Token           string `json:"token" yaml:"token"`
 	Project         `json:"project" yaml:"project"`
-	EnableAutoRenew bool `json:"enableAutoRenew" yaml:"enableAutoRenew"`
+	EnableAutoRenew bool   `json:"enableAutoRenew" yaml:"enableAutoRenew"`
+	File            string `json:"file" yaml:"file"`
 }
 
 type Tenant struct {
