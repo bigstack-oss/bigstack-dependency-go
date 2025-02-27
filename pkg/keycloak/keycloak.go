@@ -76,7 +76,7 @@ func GetGlobalHelper() *Helper {
 }
 
 func (h *Helper) SetKeycloakClient() error {
-	if h.Options.Host == "" {
+	if h.Options.Scheme == "" || h.Options.Ip == "" || h.Options.Port == 0 || h.Options.Path == "" {
 		return fmt.Errorf("keycloak host is empty")
 	}
 
@@ -92,7 +92,14 @@ func (h *Helper) SetKeycloakClient() error {
 		return fmt.Errorf("keycloak realm is empty")
 	}
 
-	h.Client = gocloak.NewClient(h.Options.Host)
+	host := fmt.Sprintf(
+		"%s://%s:%d%s",
+		h.Options.Scheme,
+		h.Options.Ip,
+		h.Options.Port,
+		h.Options.Path,
+	)
+	h.Client = gocloak.NewClient(host)
 	return nil
 }
 

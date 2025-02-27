@@ -3,6 +3,7 @@ module github.com/bigstack-oss/bigstack-dependency-go
 go 1.22.2
 
 require (
+	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/go-resty/resty/v2 v2.16.3
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/gophercloud/gophercloud/v2 v2.4.0
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/Nerzal/gocloak/v13 v13.9.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
