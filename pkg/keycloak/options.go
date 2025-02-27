@@ -3,9 +3,16 @@ package keycloak
 type Option func(*Options)
 
 type Options struct {
-	Host                  string `json:"host" yaml:"host"`
+	Host `json:"host" yaml:"host"`
+	Auth `json:"auth" yaml:"auth"`
+}
+
+type Host struct {
+	Scheme                string `json:"scheme" yaml:"scheme"`
+	Ip                    string `json:"ip" yaml:"ip"`
+	Port                  int    `json:"port" yaml:"port"`
+	Path                  string `json:"path" yaml:"path"`
 	TlsInsecureSkipVerify bool   `json:"tlsInsecureSkipVerify" yaml:"tlsInsecureSkipVerify"`
-	Auth                  `json:"auth" yaml:"auth"`
 }
 
 type Auth struct {
@@ -14,9 +21,27 @@ type Auth struct {
 	Password string `json:"password" yaml:"password"`
 }
 
-func Host(host string) Option {
+func Scheme(scheme string) Option {
 	return func(o *Options) {
-		o.Host = host
+		o.Scheme = scheme
+	}
+}
+
+func Ip(ip string) Option {
+	return func(o *Options) {
+		o.Ip = ip
+	}
+}
+
+func Port(port int) Option {
+	return func(o *Options) {
+		o.Port = port
+	}
+}
+
+func Path(path string) Option {
+	return func(o *Options) {
+		o.Path = path
 	}
 }
 

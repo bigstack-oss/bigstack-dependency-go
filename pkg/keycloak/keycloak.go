@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net/url"
 	"sync"
 
 	"github.com/Nerzal/gocloak/v13"
@@ -76,8 +77,20 @@ func GetGlobalHelper() *Helper {
 }
 
 func (h *Helper) SetKeycloakClient() error {
-	if h.Options.Host == "" {
-		return fmt.Errorf("keycloak host is empty")
+	if h.Options.Scheme == "" {
+		return fmt.Errorf("keycloak scheme is empty")
+	}
+
+	if h.Options.Ip == "" {
+		return fmt.Errorf("keycloak ip is empty")
+	}
+
+	if h.Options.Port == 0 {
+		return fmt.Errorf("keycloak port is empty")
+	}
+
+	if h.Options.Path == "" {
+		return fmt.Errorf("keycloak path is empty")
 	}
 
 	if h.Options.Username == "" {
@@ -92,8 +105,17 @@ func (h *Helper) SetKeycloakClient() error {
 		return fmt.Errorf("keycloak realm is empty")
 	}
 
-	h.Client = gocloak.NewClient(h.Options.Host)
+	url := h.genKeycloakUrl()
+	h.Client = gocloak.NewClient(url)
 	return nil
+}
+
+func (h *Helper) genKeycloakUrl() string {
+	u := url.URL{}
+	u.Scheme = h.Options.Scheme
+	u.Host = fmt.Sprintf("%s:%d", h.Options.Ip, h.Options.Port)
+	u.Path = h.Options.Path
+	return u.String()
 }
 
 func (h *Helper) LoginAdmin() error {
