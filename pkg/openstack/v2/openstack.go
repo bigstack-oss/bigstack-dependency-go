@@ -170,7 +170,7 @@ func parseAuthFile(opts *Options) {
 		switch {
 		case strings.Contains(s.Text(), "OS_AUTH_URL"):
 			words := strings.Split(s.Text(), "=")
-			opts.IdentityEndpoint = words[1]
+			opts.Auth.Url = words[1]
 		case strings.Contains(s.Text(), "OS_AUTH_TYPE"):
 			words := strings.Split(s.Text(), "=")
 			opts.Auth.Type = words[1]
