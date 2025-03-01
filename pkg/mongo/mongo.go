@@ -47,6 +47,7 @@ type CollClient interface {
 	UpdateOne(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	UpdateMany(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
 	CountDocuments(context.Context, interface{}, ...*options.CountOptions) (int64, error)
+	Indexes() mongo.IndexView
 }
 
 type CursorClient interface {
@@ -180,7 +181,6 @@ func (h *Helper) Get(db, coll string, filter bson.M) (*mongo.SingleResult, error
 
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
-
 	result := c.FindOne(ctx, filter)
 	return result, nil
 }
@@ -311,6 +311,23 @@ func (h *Helper) GetAllCollections(db string) ([]string, error) {
 	}
 
 	return collections, nil
+}
+
+func (h *Helper) CreateExpirationIndex(db, coll string, keys bson.M, seconds int32) error {
+	c, err := h.NewCollCli(db, coll)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	indexModel := mongo.IndexModel{Keys: keys, Options: options.Index().SetExpireAfterSeconds(seconds)}
+	_, err = c.Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Helper) Close() {
