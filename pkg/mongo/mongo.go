@@ -313,7 +313,7 @@ func (h *Helper) GetAllCollections(db string) ([]string, error) {
 	return collections, nil
 }
 
-func (h *Helper) CreateExpirationIndex(db, coll string, keys bson.M, seconds int32) error {
+func (h *Helper) CreateExpirationIndex(db, coll string, keys bson.D, seconds int32) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
