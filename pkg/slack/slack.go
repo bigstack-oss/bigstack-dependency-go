@@ -17,6 +17,7 @@ type Client interface {
 
 type Helper struct {
 	Client
+	PostWebhook func(string, *slack.WebhookMessage) error
 	Options
 }
 
@@ -24,7 +25,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	initedOpts := initOptions(opts)
 	h := &Helper{Options: *initedOpts}
 
-	err := h.SetClient()
+	err := h.SetClients()
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +58,22 @@ func initOptions(opts []Option) *Options {
 	return options
 }
 
-func (h *Helper) SetClient() error {
+func (h *Helper) SetClients() error {
 	h.Client = slack.New(h.Token)
+	h.PostWebhook = slack.PostWebhook
 	return nil
 }
 
 func (h *Helper) SendTextMsg(channel, msg string) error {
 	_, _, err := h.Client.PostMessage(channel, slack.MsgOptionText(msg, false))
 	return err
+}
+
+func (h *Helper) SendWebhookMsg(url string, msg string) error {
+	return h.PostWebhook(
+		url,
+		&slack.WebhookMessage{
+			Text: msg,
+		},
+	)
 }
