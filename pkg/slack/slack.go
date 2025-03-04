@@ -48,11 +48,6 @@ func GetGlobalHelper() *Helper {
 	return helper
 }
 
-func (h *Helper) SetClient() error {
-	h.Client = slack.New(h.Token)
-	return nil
-}
-
 func initOptions(opts []Option) *Options {
 	options := &Options{}
 	for _, o := range opts {
@@ -60,4 +55,14 @@ func initOptions(opts []Option) *Options {
 	}
 
 	return options
+}
+
+func (h *Helper) SetClient() error {
+	h.Client = slack.New(h.Token)
+	return nil
+}
+
+func (h *Helper) SendTextMsg(channel, msg string) error {
+	_, _, err := h.Client.PostMessage(channel, slack.MsgOptionText(msg, false))
+	return err
 }
