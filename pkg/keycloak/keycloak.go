@@ -61,9 +61,6 @@ func NewGlobalHelper(opts ...Option) error {
 	var err error
 	once.Do(func() {
 		helper, err = NewHelper(opts...)
-		if err != nil {
-			return
-		}
 	})
 	if err != nil {
 		return err
