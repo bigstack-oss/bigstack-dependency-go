@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"io"
 	"net/http"
 	"time"
 
@@ -81,7 +82,21 @@ func (h *Helper) CreateBucket(opts s3.CreateBucketInput) (*s3.CreateBucketOutput
 	return h.S3Client.CreateBucket(ctx, &opts)
 }
 
-func (h *Helper) PutObject(bucket, key string, body []byte) (*s3.PutObjectOutput, error) {
+func (h *Helper) PutObject(bucket, key string, reader io.Reader) (*s3.PutObjectOutput, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.S3Client.PutObject(
+		ctx,
+		&s3.PutObjectInput{
+			Bucket: &bucket,
+			Key:    &key,
+			Body:   reader,
+		},
+		s3.WithAPIOptions(v4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware),
+	)
+}
+
+func (h *Helper) PutByteObject(bucket, key string, body []byte) (*s3.PutObjectOutput, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.S3Client.PutObject(
