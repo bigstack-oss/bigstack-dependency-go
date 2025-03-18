@@ -75,13 +75,10 @@ func newAwsConfig(opts Options) (*aws.Config, error) {
 	return &cfg, nil
 }
 
-func (h *Helper) CreateBucket(bucketName string) (*s3.CreateBucketOutput, error) {
+func (h *Helper) CreateBucket(opts s3.CreateBucketInput) (*s3.CreateBucketOutput, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
-	return h.S3Client.CreateBucket(
-		ctx,
-		&s3.CreateBucketInput{Bucket: &bucketName},
-	)
+	return h.S3Client.CreateBucket(ctx, &opts)
 }
 
 func (h *Helper) PutObject(bucket, key string, body []byte) (*s3.PutObjectOutput, error) {
