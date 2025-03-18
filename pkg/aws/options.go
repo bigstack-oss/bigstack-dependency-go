@@ -3,15 +3,15 @@ package aws
 type Option func(*Options)
 
 type Options struct {
-	Region string
-	S3Url  string
+	Region string `json:"region" yaml:"region"`
+	S3Url  string `json:"s3Url" yaml:"s3Url"`
 
-	AccessKey string
-	SecretKey string
+	AccessKey string `json:"accessKey" yaml:"accessKey"`
+	SecretKey string `json:"secretKey" yaml:"secretKey"`
 
-	EnableCustomURL    bool
-	EnableStaticCreds  bool
-	InsecureSkipVerify bool
+	EnableCustomURL    bool `json:"enableCustomURL" yaml:"enableCustomURL"`
+	EnableStaticCreds  bool `json:"enableStaticCreds" yaml:"enableStaticCreds"`
+	InsecureSkipVerify bool `json:"insecureSkipVerify" yaml:"insecureSkipVerify"`
 }
 
 func Region(region string) Option {
