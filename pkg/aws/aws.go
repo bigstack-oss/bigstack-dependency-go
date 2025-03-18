@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"sync"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -12,6 +13,12 @@ const (
 
 	S3DefaultAccessKey = ""
 	S3DefaultSecretKey = ""
+)
+
+var (
+	helper *Helper
+	Opts   *Options
+	once   sync.Once
 )
 
 type S3Client interface {
@@ -31,4 +38,41 @@ type Helper struct {
 	S3PresignedClient
 
 	Options
+}
+
+func GetGlobalHelper() *Helper {
+	return helper
+}
+
+func NewGlobalHelper(opts ...Option) error {
+	var err error
+	once.Do(func() {
+		helper, err = NewHelper(opts...)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewHelper(opts ...Option) (*Helper, error) {
+	initedOpts := initOptions(opts)
+	h := &Helper{Options: *initedOpts}
+
+	err := h.SetS3Client()
+	if err != nil {
+		return nil, err
+	}
+
+	return h, nil
+}
+
+func initOptions(opts []Option) *Options {
+	options := &Options{}
+	for _, o := range opts {
+		o(options)
+	}
+
+	return options
 }

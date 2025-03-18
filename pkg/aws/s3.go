@@ -16,23 +16,17 @@ import (
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 )
 
-func NewS3Client(opts ...Option) (*Helper, error) {
-	h := &Helper{}
-	h.Options = Options{}
-	for _, opt := range opts {
-		opt(&h.Options)
-	}
-
+func (h *Helper) SetS3Client() error {
 	cli, err := newS3Client(h.Options)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	h.S3Client = cli
 	h.S3PresignedClient = s3.NewPresignClient(cli)
 	h.AwsS3Client = cli
 
-	return h, nil
+	return nil
 }
 
 func newS3Client(opts Options) (*s3.Client, error) {

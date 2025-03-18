@@ -1,9 +1,5 @@
 package aws
 
-var (
-	Opts *Options
-)
-
 type Option func(*Options)
 
 type Options struct {
