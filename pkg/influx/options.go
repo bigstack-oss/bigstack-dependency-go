@@ -10,7 +10,7 @@ type Options struct {
 	Url                   string `json:"url" yaml:"url"`
 	Protocol              string `json:"protocol" yaml:"protocol"`
 	Host                  string `json:"host" yaml:"host"`
-	Port                  string `json:"port" yaml:"port"`
+	Port                  int    `json:"port" yaml:"port"`
 	Org                   string `json:"org" yaml:"org"`
 	Auth                  `json:"auth" yaml:"auth"`
 	TlsInsecureSkipVerify bool `json:"tlsInsecureSkipVerify" yaml:"tlsInsecureSkipVerify"`
@@ -39,7 +39,7 @@ func Host(host string) Option {
 	}
 }
 
-func Port(port string) Option {
+func Port(port int) Option {
 	return func(o *Options) {
 		o.Port = port
 	}
