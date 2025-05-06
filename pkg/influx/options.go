@@ -8,6 +8,9 @@ type Option func(*Options)
 
 type Options struct {
 	Url                   string `json:"url" yaml:"url"`
+	Protocol              string `json:"protocol" yaml:"protocol"`
+	Host                  string `json:"host" yaml:"host"`
+	Port                  string `json:"port" yaml:"port"`
 	Org                   string `json:"org" yaml:"org"`
 	Auth                  `json:"auth" yaml:"auth"`
 	TlsInsecureSkipVerify bool `json:"tlsInsecureSkipVerify" yaml:"tlsInsecureSkipVerify"`
@@ -21,6 +24,24 @@ type Auth struct {
 func Url(url string) Option {
 	return func(o *Options) {
 		o.Url = url
+	}
+}
+
+func Protocol(protocol string) Option {
+	return func(o *Options) {
+		o.Protocol = protocol
+	}
+}
+
+func Host(host string) Option {
+	return func(o *Options) {
+		o.Host = host
+	}
+}
+
+func Port(port string) Option {
+	return func(o *Options) {
+		o.Port = port
 	}
 }
 

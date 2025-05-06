@@ -8,6 +8,8 @@ type Option func(*Options)
 
 type Options struct {
 	Uri        string `json:"uri" yaml:"uri"`
+	Host       string `json:"host" yaml:"host"`
+	Port       string `json:"port" yaml:"port"`
 	Auth       `json:"auth" yaml:"auth"`
 	ReplicaSet string `json:"replicaSet" yaml:"replicaSet"`
 	Connect    string `json:"connect" yaml:"connect"`
@@ -28,6 +30,18 @@ type Auth struct {
 func Uri(uri string) Option {
 	return func(o *Options) {
 		o.Uri = uri
+	}
+}
+
+func Host(host string) Option {
+	return func(o *Options) {
+		o.Host = host
+	}
+}
+
+func Port(port string) Option {
+	return func(o *Options) {
+		o.Port = port
 	}
 }
 
