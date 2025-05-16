@@ -5,14 +5,14 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: 09:00
+      time: "09:00"
 
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
       day: monday
-      time: 09:00
+      time: "09:00"
     update-types: ["version-update:semver-patch"]
     groups:
       minor-and-patch:
