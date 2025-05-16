@@ -12,7 +12,6 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-      update-types: ["version-update:semver-patch"]
     groups:
       minor-and-patch:
         applies-to: version-updates
