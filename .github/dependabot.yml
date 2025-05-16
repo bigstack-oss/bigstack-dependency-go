@@ -6,7 +6,6 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-
   - package-ecosystem: gomod
     directory: /
     schedule:
