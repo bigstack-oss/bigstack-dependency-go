@@ -114,6 +114,11 @@ func (q *Query) Top(params string) *Query {
 	return q
 }
 
+func (q *Query) Sum(params string) *Query {
+	q.stages = append(q.stages, fmt.Sprintf(`|> sum(%s)`, params))
+	return q
+}
+
 func (q *Query) String() string {
 	return strings.Join(q.stages, " ")
 }
