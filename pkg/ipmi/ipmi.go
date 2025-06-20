@@ -10,6 +10,7 @@ import (
 type Client interface {
 	Connect(context.Context) error
 	GetFRU(context.Context, uint8, string) (*ipmi.FRU, error)
+	ChassisControl(context.Context, ipmi.ChassisControl) (*ipmi.ChassisControlResponse, error)
 	Close(context.Context) error
 }
 
@@ -80,4 +81,10 @@ func (h *Helper) Close() error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.Close(ctx)
+}
+
+func (h *Helper) Operate(control ipmi.ChassisControl) (*ipmi.ChassisControlResponse, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.ChassisControl(ctx, control)
 }
