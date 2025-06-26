@@ -1,6 +1,6 @@
 module github.com/bigstack-oss/bigstack-dependency-go
 
-go 1.22.2
+go 1.24.0
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0

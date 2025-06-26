@@ -2,21 +2,16 @@ package ipmi
 
 import (
 	"context"
-
-	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
-	"github.com/bougou/go-ipmi"
+	"fmt"
+	"os/exec"
 )
 
-type Client interface {
-	Connect(context.Context) error
-	GetFRU(context.Context, uint8, string) (*ipmi.FRU, error)
-	ChassisControl(context.Context, ipmi.ChassisControl) (*ipmi.ChassisControlResponse, error)
-	Close(context.Context) error
-}
+var (
+	cmd = exec.Command
+)
 
 type Helper struct {
 	cancel *context.CancelFunc
-	Client
 	Options
 }
 
@@ -35,56 +30,47 @@ func genDefaultOptions() *Options {
 
 func NewHelper(opts ...Option) (*Helper, error) {
 	initedOpts := initOptions(opts)
-	client, err := ipmi.NewClient(
-		initedOpts.Host,
-		initedOpts.Port,
-		initedOpts.Username,
-		initedOpts.Password,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(20))
-	err = client.Connect(ctx)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
 	return &Helper{
-		Client:  client,
 		Options: *initedOpts,
-		cancel:  &cancel,
 	}, nil
 }
 
-func (h *Helper) GetFRU(deviceId uint8) (*ipmi.FRU, error) {
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	return h.Client.GetFRU(
-		ctx,
-		deviceId,
-		"",
-	)
-}
-
-func (h *Helper) Close() error {
-	if h.Client == nil {
-		return nil
+func (h *Helper) GetFRU(deviceId uint8) (*FRU, error) {
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "fru", "print", string(deviceId)).Output()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to get IPMI fru for %d %s(%v)",
+			deviceId,
+			err,
+			string(out),
+		)
 	}
 
-	if h.cancel != nil {
-		(*h.cancel)()
-	}
-
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	return h.Client.Close(ctx)
+	return h.parseFRU(out)
 }
 
-func (h *Helper) Operate(control ipmi.ChassisControl) (*ipmi.ChassisControlResponse, error) {
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	return h.Client.ChassisControl(ctx, control)
+func (h *Helper) GetDefaultIpmiIp() (string, error) {
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "lan", "print", "1").Output()
+	if err != nil {
+		return "", fmt.Errorf(
+			"failed to get IPMI ip %s(%v)",
+			string(out),
+			err,
+		)
+	}
+
+	return h.parseIpmiIp(out)
+}
+
+func (h *Helper) Operate(operation string) error {
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "chassis", "power", operation).Output()
+	if err != nil {
+		return fmt.Errorf(
+			"failed to do IPMI operation %s(%v)",
+			string(out),
+			err,
+		)
+	}
+
+	return nil
 }
