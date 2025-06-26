@@ -35,12 +35,11 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	}, nil
 }
 
-func (h *Helper) GetFRU(deviceId uint8) (*FRU, error) {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "fru", "print", string(deviceId)).Output()
+func (h *Helper) GetFRU() (*FRU, error) {
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "fru", "print", "0").Output()
 	if err != nil {
 		return nil, fmt.Errorf(
-			"failed to get IPMI fru for %d %s(%v)",
-			deviceId,
+			"failed to get IPMI fru for 0 %s(%v)",
 			err,
 			string(out),
 		)
