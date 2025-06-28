@@ -110,7 +110,7 @@ func newProvider(opts ...Option) (*gophercloud.ProviderClient, error) {
 		return nil, err
 	}
 
-	finalOpts, err := genAuthOpts(syncedOpts)
+	finalOpts, err := GenAuthOpts(syncedOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +134,13 @@ func syncOptions(opts []Option) (*Options, error) {
 	return options, nil
 }
 
-func genAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
+func GenAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 	if opts.Auth.Type == "env" {
 		return openstack.AuthOptionsFromEnv()
 	}
 
 	if opts.Auth.Source == "file" {
-		parseAuthFile(opts)
+		ParseAuthFile(opts)
 	}
 
 	return gophercloud.AuthOptions{
@@ -153,7 +153,7 @@ func genAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 	}, nil
 }
 
-func parseAuthFile(opts *Options) {
+func ParseAuthFile(opts *Options) {
 	openedFile, err := os.Open(opts.Auth.File)
 	if err != nil {
 		log.Errorf("failed to load ops conf: %s (%s)", opts.Auth.File, err.Error())
