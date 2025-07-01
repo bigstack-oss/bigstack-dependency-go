@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strconv"
 )
 
 var (
@@ -36,7 +37,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 }
 
 func (h *Helper) GetFRU() (*FRU, error) {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "fru", "print", "0").Output()
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "fru", "print", "0").Output()
 	if err != nil {
 		return nil, fmt.Errorf(
 			"failed to get IPMI fru for 0 %s(%v)",
@@ -49,7 +50,7 @@ func (h *Helper) GetFRU() (*FRU, error) {
 }
 
 func (h *Helper) GetDefaultIpmiIp() (string, error) {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "lan", "print", "1").Output()
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "lan", "print", "1").Output()
 	if err != nil {
 		return "", fmt.Errorf(
 			"failed to get IPMI ip %s(%v)",
@@ -62,7 +63,7 @@ func (h *Helper) GetDefaultIpmiIp() (string, error) {
 }
 
 func (h *Helper) Operate(operation string) error {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-U", h.Username, "-P", h.Password, "chassis", "power", operation).Output()
+	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "chassis", "power", operation).Output()
 	if err != nil {
 		return fmt.Errorf(
 			"failed to do IPMI operation %s(%v)",
