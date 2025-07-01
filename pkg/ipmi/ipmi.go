@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
+
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 )
 
 var (
-	cmd = exec.Command
+	cmd = exec.CommandContext
 )
 
 type Helper struct {
-	cancel *context.CancelFunc
 	Options
 }
 
@@ -37,7 +38,10 @@ func NewHelper(opts ...Option) (*Helper, error) {
 }
 
 func (h *Helper) GetFRU() (*FRU, error) {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "fru", "print", "0").Output()
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+
+	out, err := cmd(ctx, "ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "fru", "print", "0").Output()
 	if err != nil {
 		return nil, fmt.Errorf(
 			"failed to get IPMI fru for 0 %s(%v)",
@@ -50,7 +54,10 @@ func (h *Helper) GetFRU() (*FRU, error) {
 }
 
 func (h *Helper) GetDefaultIpmiIp() (string, error) {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "lan", "print", "1").Output()
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(20))
+	defer cancel()
+
+	out, err := cmd(ctx, "ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "lan", "print", "1").Output()
 	if err != nil {
 		return "", fmt.Errorf(
 			"failed to get IPMI ip %s(%v)",
@@ -63,7 +70,10 @@ func (h *Helper) GetDefaultIpmiIp() (string, error) {
 }
 
 func (h *Helper) Operate(operation string) error {
-	out, err := cmd("ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "chassis", "power", operation).Output()
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(20))
+	defer cancel()
+
+	out, err := cmd(ctx, "ipmitool", "-I", "lanplus", "-H", h.Host, "-p", strconv.Itoa(h.Port), "-U", h.Username, "-P", h.Password, "chassis", "power", operation).Output()
 	if err != nil {
 		return fmt.Errorf(
 			"failed to do IPMI operation %s(%v)",
