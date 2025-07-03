@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/http"
+	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
+	log "go-micro.dev/v5/logger"
 	"gopkg.in/yaml.v2"
 )
 
@@ -204,19 +205,19 @@ func (h *Helper) CreateKubernetes(cluster *Cluster) (*ClusterResponse, error) {
 func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
+		log.Errorf("rancher: failed to parse url(%v)", err)
 		return nil, err
 	}
 
 	u.Path = fmt.Sprintf("/apis/provisioning.cattle.io/v1/namespaces/fleet-default/clusters/%s", name)
 	attemptsMax := 240
-	interval := time.Second * 10
 
 	for {
 		if attemptsMax <= 0 {
 			break
 		}
 
-		time.Sleep(interval)
+		wait.Seconds(10)
 		statusResp := &StatusResponse{}
 		resp, err := h.Http.R().
 			SetResult(statusResp).
@@ -224,16 +225,19 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 			Get(u.String())
 		if err != nil {
 			attemptsMax--
+			log.Errorf("rancher: failed to request GET kubernetes status(%v)", err)
 			continue
 		}
 
 		if !resp.IsError() {
 			attemptsMax--
+			log.Infof("rancher: has error response when requesting kubernetes status(%d %s)", resp.StatusCode(), resp.String())
 			continue
 		}
 
 		if !http.Is2XXCode[resp.StatusCode()] {
 			attemptsMax--
+			log.Infof("rancher: kubernetes status response is not 2xx code(%d %s)", resp.StatusCode(), resp.String())
 			continue
 		}
 
@@ -246,7 +250,7 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 
 	return nil, fmt.Errorf(
 		"kubernetes cluster is not ready until %d seconds",
-		int(interval.Seconds())*240,
+		10*240,
 	)
 }
 
