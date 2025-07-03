@@ -96,6 +96,6 @@ func (r DevicePage) NextPageURL() (string, error) {
 	return gophercloud.ExtractNextURL(s.Links)
 }
 
-func ExtractDevicesInto(r pagination.Page, v interface{}) error {
+func ExtractDevicesInto(r pagination.Page, v any) error {
 	return r.(DevicePage).Result.ExtractIntoSlicePtr(v, "devices")
 }

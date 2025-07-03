@@ -88,7 +88,7 @@ func GetGlobalHelper() *Helper {
 	return helper
 }
 
-func (h *Helper) ShowResourceValues(resourceType string) (map[string]interface{}, error) {
+func (h *Helper) ShowResourceValues(resourceType string) (map[string]any, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(120))
 	defer cancel()
 

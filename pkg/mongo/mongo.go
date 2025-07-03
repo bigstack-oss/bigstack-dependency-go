@@ -27,31 +27,31 @@ type Client interface {
 
 type DBClient interface {
 	Collection(string, ...*options.CollectionOptions) *mongo.Collection
-	ListCollectionNames(context.Context, interface{}, ...*options.ListCollectionsOptions) ([]string, error)
+	ListCollectionNames(context.Context, any, ...*options.ListCollectionsOptions) ([]string, error)
 }
 
 type TxnClient interface {
-	WithTransaction(context.Context, func(mongo.SessionContext) (interface{}, error), ...*options.TransactionOptions) (interface{}, error)
+	WithTransaction(context.Context, func(mongo.SessionContext) (any, error), ...*options.TransactionOptions) (any, error)
 	EndSession(context.Context)
 }
 
 type CollClient interface {
-	Find(context.Context, interface{}, ...*options.FindOptions) (*mongo.Cursor, error)
-	FindOne(context.Context, interface{}, ...*options.FindOneOptions) *mongo.SingleResult
-	FindOneAndUpdate(context.Context, interface{}, interface{}, ...*options.FindOneAndUpdateOptions) *mongo.SingleResult
-	FindOneAndDelete(context.Context, interface{}, ...*options.FindOneAndDeleteOptions) *mongo.SingleResult
-	InsertOne(context.Context, interface{}, ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
-	InsertMany(context.Context, []interface{}, ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
-	DeleteOne(context.Context, interface{}, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
-	DeleteMany(context.Context, interface{}, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
-	UpdateOne(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
-	UpdateMany(context.Context, interface{}, interface{}, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
-	CountDocuments(context.Context, interface{}, ...*options.CountOptions) (int64, error)
+	Find(context.Context, any, ...*options.FindOptions) (*mongo.Cursor, error)
+	FindOne(context.Context, any, ...*options.FindOneOptions) *mongo.SingleResult
+	FindOneAndUpdate(context.Context, any, any, ...*options.FindOneAndUpdateOptions) *mongo.SingleResult
+	FindOneAndDelete(context.Context, any, ...*options.FindOneAndDeleteOptions) *mongo.SingleResult
+	InsertOne(context.Context, any, ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
+	InsertMany(context.Context, []any, ...*options.InsertManyOptions) (*mongo.InsertManyResult, error)
+	DeleteOne(context.Context, any, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
+	DeleteMany(context.Context, any, ...*options.DeleteOptions) (*mongo.DeleteResult, error)
+	UpdateOne(context.Context, any, any, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
+	UpdateMany(context.Context, any, any, ...*options.UpdateOptions) (*mongo.UpdateResult, error)
+	CountDocuments(context.Context, any, ...*options.CountOptions) (int64, error)
 	Indexes() mongo.IndexView
 }
 
 type CursorClient interface {
-	All(context.Context, interface{}) error
+	All(context.Context, any) error
 	Next(context.Context) bool
 }
 
@@ -198,7 +198,7 @@ func (h *Helper) GetCount(db, coll string, filter bson.M) (int64, error) {
 	return count, nil
 }
 
-func (h *Helper) Insert(db, coll string, data interface{}) error {
+func (h *Helper) Insert(db, coll string, data any) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
@@ -214,7 +214,7 @@ func (h *Helper) Insert(db, coll string, data interface{}) error {
 	return nil
 }
 
-func (h *Helper) InsertMany(db, coll string, data []interface{}) error {
+func (h *Helper) InsertMany(db, coll string, data []any) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (h *Helper) InsertMany(db, coll string, data []interface{}) error {
 	return nil
 }
 
-func (h *Helper) UpdateOne(db, coll string, filter interface{}, data interface{}, opts ...*options.UpdateOptions) error {
+func (h *Helper) UpdateOne(db, coll string, filter any, data any, opts ...*options.UpdateOptions) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
@@ -246,7 +246,7 @@ func (h *Helper) UpdateOne(db, coll string, filter interface{}, data interface{}
 	return nil
 }
 
-func (h *Helper) UpdateMany(db, coll string, filter interface{}, data interface{}) error {
+func (h *Helper) UpdateMany(db, coll string, filter any, data any) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (h *Helper) UpdateMany(db, coll string, filter interface{}, data interface{
 	return nil
 }
 
-func (h *Helper) DeleteOne(db, coll string, filter interface{}) error {
+func (h *Helper) DeleteOne(db, coll string, filter any) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
@@ -278,7 +278,7 @@ func (h *Helper) DeleteOne(db, coll string, filter interface{}) error {
 	return nil
 }
 
-func (h *Helper) DeleteAll(db, coll string, filter interface{}) error {
+func (h *Helper) DeleteAll(db, coll string, filter any) error {
 	c, err := h.NewCollCli(db, coll)
 	if err != nil {
 		return err
