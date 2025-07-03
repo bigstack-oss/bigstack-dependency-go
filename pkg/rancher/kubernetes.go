@@ -252,6 +252,7 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 func (h *Helper) GetKubernetesConfig(name string) ([]byte, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
+		log.Errorf("rancher: failed to parse url(%v)", err)
 		return nil, err
 	}
 
@@ -261,27 +262,34 @@ func (h *Helper) GetKubernetesConfig(name string) ([]byte, error) {
 		SetHeaders(GenAuthHeaders(h.Options.Token)).
 		Post(u.String())
 	if err != nil {
+		log.Errorf("rancher: failed to request generate kubernetes config(%v)", err)
 		return nil, err
 	}
 
-	if !resp.IsError() {
-		return resp.Body(), nil
+	if resp.IsError() {
+		err := fmt.Errorf("failed to generate kubernetes config(%d %s)", resp.StatusCode(), resp.String())
+		log.Errorf("rancher: %v", err)
+		return nil, err
 	}
 
 	rawConf := map[string]any{}
 	err = yaml.Unmarshal(resp.Body(), &rawConf)
 	if err != nil {
+		log.Errorf("rancher: failed to unmarshal kubernetes config(%v)", err)
 		return nil, err
 	}
 
 	conf, found := rawConf["config"]
 	if !found {
-		return nil, fmt.Errorf("failed to find rke cluster config(%s)", name)
+		err := fmt.Errorf("failed to find rke cluster config(%s)", name)
+		log.Errorf("rancher: %v", err)
+		return nil, err
 	}
 
 	bytes, err := yaml.Marshal(conf)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal rke cluster conf(%v)", err)
+		log.Errorf("rancher: failed to marshal rke cluster conf(%v)", err)
+		return nil, err
 	}
 
 	return bytes, nil
