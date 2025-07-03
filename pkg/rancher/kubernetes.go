@@ -229,12 +229,6 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 			continue
 		}
 
-		if !resp.IsError() {
-			attemptsMax--
-			log.Infof("rancher: has error response when requesting kubernetes status(%d %s)", resp.StatusCode(), resp.String())
-			continue
-		}
-
 		if !http.Is2XXCode[resp.StatusCode()] {
 			attemptsMax--
 			log.Infof("rancher: kubernetes status response is not 2xx code(%d %s)", resp.StatusCode(), resp.String())
