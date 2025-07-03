@@ -239,6 +239,7 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 			return statusResp, nil
 		}
 
+		log.Infof("rancher: kubernetes cluster %s is not ready yet, waiting...", name)
 		attemptsMax--
 	}
 
