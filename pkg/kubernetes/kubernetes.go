@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -32,71 +34,13 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 )
 
-const (
-	K3sConfigFile = "/etc/rancher/k3s/k3s.yaml"
-
-	Cpu              = "cpu"
-	Memory           = "memory"
-	EphemeralStorage = "ephemeral-storage"
-
-	LimitCpu              = "limits.cpu"
-	LimitMemory           = "limits.memory"
-	LimitEphemeralStorage = "limits.ephemeral-storage"
-)
-
 var (
-	DefaultCluster   = "cluster"
-	DefaultNamespace = "default"
-	DefaultUser      = "default"
+	helper *Helper
+	once   sync.Once
 
 	InClusterAuth    = "inCluster"
 	OutOfClusterAuth = "outOfCluster"
-	DirectBytesAuth  = "directBytes"
 	LeaseRun         = leaderelection.RunOrDie
-
-	RbacAuthGroup      = "rbac.authorization.k8s.io"
-	KindServiceAccount = "ServiceAccount"
-
-	ClusterRole         = "ClusterRole"
-	ClusterRoleCubeUser = "cube-user"
-
-	RoleRefAdminNamespace = &rbacv1.RoleRef{
-		Kind:     "ClusterRole",
-		Name:     "admin",
-		APIGroup: rbacv1.GroupName,
-	}
-	RoleRefCubeUser = rbacv1.RoleRef{
-		Kind:     ClusterRole,
-		Name:     ClusterRoleCubeUser,
-		APIGroup: RbacAuthGroup,
-	}
-
-	CubeUser = []rbacv1.PolicyRule{
-		{
-			APIGroups: []string{""},
-			Resources: []string{"namespaces"},
-			Verbs:     []string{"list"},
-		},
-		{
-			APIGroups: []string{"storage.k8s.io"},
-			Resources: []string{"storageclasses"},
-			Verbs:     []string{"get", "list"},
-		},
-	}
-
-	TaintCriticalAddonsOnly = "CriticalAddonsOnly"
-	TaintControlPlane       = "node-role.kubernetes.io/control-plane"
-	TolerationControlPlane  = []corev1.Toleration{
-		{
-			Key:      TaintCriticalAddonsOnly,
-			Operator: corev1.TolerationOpExists,
-		},
-		{
-			Key:      TaintControlPlane,
-			Operator: corev1.TolerationOpExists,
-			Effect:   corev1.TaintEffectNoSchedule,
-		},
-	}
 )
 
 type EventClient interface {
@@ -105,6 +49,13 @@ type EventClient interface {
 
 type PodClient interface {
 	List(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error)
+	GetLogs(name string, opts *corev1.PodLogOptions) *rest.Request
+}
+
+type JobClient interface {
+	Create(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error)
 }
 
 type DeploymentClient interface {
@@ -191,6 +142,11 @@ type ResourceQuotaClient interface {
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *corev1.ResourceQuota, err error)
 }
 
+type ConfigMapClient interface {
+	Create(ctx context.Context, configMap *corev1.ConfigMap, opts metav1.CreateOptions) (*corev1.ConfigMap, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+}
+
 type CustomResourceDefinitionClient interface {
 	List(context.Context, metav1.ListOptions) (*apiextensionsv1.CustomResourceDefinitionList, error)
 	Create(context.Context, *apiextensionsv1.CustomResourceDefinition, metav1.CreateOptions) (*apiextensionsv1.CustomResourceDefinition, error)
@@ -207,6 +163,7 @@ type Helper struct {
 
 	EventClient
 	PodClient
+	JobClient
 	DeploymentClient
 	NamespaceClient
 	NodeClient
@@ -220,9 +177,50 @@ type Helper struct {
 	ClusterRoleBindingClient
 	LeaseClient
 	ResourceQuotaClient
+	ConfigMapClient
 	CustomResourceDefinitionClient
 
 	Options
+}
+
+func initOptions(opts []Option) *Options {
+	defaultOpts := &Options{}
+	return overrideOptions(defaultOpts, opts)
+}
+
+func overrideOptions(opts *Options, options []Option) *Options {
+	for _, opt := range options {
+		opt(opts)
+	}
+
+	return opts
+}
+
+func NewHelper(opts ...Option) (*Helper, error) {
+	options := initOptions(opts)
+	h := &Helper{Options: *options}
+	err := h.SetAuth()
+	if err != nil {
+		return nil, fmt.Errorf("failed to set auth (%v)", err)
+	}
+
+	return h, nil
+}
+
+func NewGlobalHelper(opts ...Option) error {
+	var err error
+	once.Do(func() {
+		helper, err = NewHelper(opts...)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetGlobalHelper() *Helper {
+	return helper
 }
 
 func (h *Helper) SetAuth() error {
@@ -266,6 +264,14 @@ func (h *Helper) SetEventClient() {
 
 func (h *Helper) SetPodClient(namespace string) {
 	h.PodClient = h.clientset.CoreV1().Pods(namespace)
+}
+
+func (h *Helper) SetJobClient(namespace string) {
+	h.JobClient = h.clientset.BatchV1().Jobs(namespace)
+}
+
+func (h *Helper) SetConfigMapClient(namespace string) {
+	h.ConfigMapClient = h.clientset.CoreV1().ConfigMaps(namespace)
 }
 
 func (h *Helper) SetDeploymentClient() {
@@ -359,6 +365,13 @@ func (h *Helper) ListPod(opt metav1.ListOptions) (*corev1.PodList, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	return h.PodClient.List(ctx, opt)
+}
+
+func (h *Helper) GetPodLog(name string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	req := h.PodClient.GetLogs(name, opts)
+	return req.Stream(ctx)
 }
 
 func (h *Helper) GetDeployment(name string) (*appsv1.Deployment, error) {
@@ -545,9 +558,21 @@ func (h *Helper) CreateTokenSecret(secretName, serviceAccountName string) (*core
 	defer cancel()
 	return h.SecretClient.Create(
 		ctx,
-		genTokenSecretOpts(secretName, serviceAccountName),
+		h.GenTokenSecretOpts(secretName, serviceAccountName),
 		metav1.CreateOptions{},
 	)
+}
+
+func (h *Helper) GenTokenSecretOpts(secretName, serviceAccountName string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: secretName,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": serviceAccountName,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+	}
 }
 
 func (h *Helper) DeleteSecret(secretName string) error {
@@ -618,6 +643,7 @@ func (h *Helper) DeleteRoleBindingsIfTheServiceAccountIsIncluded(username, names
 
 	return nil
 }
+
 func (h *Helper) ListClusterRoleBinding(opt metav1.ListOptions) (*rbacv1.ClusterRoleBindingList, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
@@ -943,38 +969,32 @@ func (h *Helper) ApplyCustomResourceDefinitions(crd apiextensionsv1.CustomResour
 	return h.CustomResourceDefinitionClient.Create(ctx, &crd, metav1.CreateOptions{})
 }
 
-func overrideOptions(opts *Options, options []Option) *Options {
-	for _, opt := range options {
-		opt(opts)
-	}
-
-	return opts
+func (h *Helper) CreateConfigMap(configMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.ConfigMapClient.Create(ctx, configMap, metav1.CreateOptions{})
 }
 
-func initOptions(opts []Option) *Options {
-	defaultOpts := &Options{}
-	return overrideOptions(defaultOpts, opts)
+func (h *Helper) DeleteConfigMap(name string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.ConfigMapClient.Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-func NewHelper(opts ...Option) (*Helper, error) {
-	options := initOptions(opts)
-	h := &Helper{Options: *options}
-	err := h.SetAuth()
-	if err != nil {
-		return nil, fmt.Errorf("failed to set auth (%v)", err)
-	}
-
-	return h, nil
+func (h *Helper) CreateJob(job *batchv1.Job) (*batchv1.Job, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.JobClient.Create(ctx, job, metav1.CreateOptions{})
 }
 
-func genTokenSecretOpts(secretName, serviceAccountName string) *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: secretName,
-			Annotations: map[string]string{
-				"kubernetes.io/service-account.name": serviceAccountName,
-			},
-		},
-		Type: corev1.SecretTypeServiceAccountToken,
-	}
+func (h *Helper) GetJob(name string) (*batchv1.Job, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.JobClient.Get(ctx, name, metav1.GetOptions{})
+}
+
+func (h *Helper) DeleteJob(name string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.JobClient.Delete(ctx, name, metav1.DeleteOptions{})
 }
