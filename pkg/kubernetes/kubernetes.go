@@ -996,5 +996,11 @@ func (h *Helper) GetJob(name string) (*batchv1.Job, error) {
 func (h *Helper) DeleteJob(name string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
-	return h.JobClient.Delete(ctx, name, metav1.DeleteOptions{})
+
+	backgroundDeletion := metav1.DeletePropagationBackground
+	return h.JobClient.Delete(
+		ctx,
+		name,
+		metav1.DeleteOptions{PropagationPolicy: &backgroundDeletion},
+	)
 }
