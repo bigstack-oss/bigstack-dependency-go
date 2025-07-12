@@ -367,13 +367,6 @@ func (h *Helper) ListPod(opt metav1.ListOptions) (*corev1.PodList, error) {
 	return h.PodClient.List(ctx, opt)
 }
 
-func (h *Helper) GetPodLog(name string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
-	defer cancel()
-	req := h.PodClient.GetLogs(name, opts)
-	return req.Stream(ctx)
-}
-
 func (h *Helper) GetDeployment(name string) (*appsv1.Deployment, error) {
 	var err error
 	var trialCount int

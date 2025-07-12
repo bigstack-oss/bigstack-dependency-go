@@ -24,6 +24,7 @@ type Helper struct {
 
 	Identity     *gophercloud.ServiceClient
 	Compute      *gophercloud.ServiceClient
+	Image        *gophercloud.ServiceClient
 	Network      *gophercloud.ServiceClient
 	Loadbalancer *gophercloud.ServiceClient
 	Storage      *gophercloud.ServiceClient
@@ -69,6 +70,12 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		return nil, err
 	}
 
+	imageCli, err := newImageCli(provider)
+	if err != nil {
+		log.Errorf("failed to create image client: %s", err.Error())
+		return nil, err
+	}
+
 	networkCli, err := newNetworkCli(provider)
 	if err != nil {
 		log.Errorf("failed to create network client: %s", err.Error())
@@ -97,6 +104,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		Provider:     provider,
 		Identity:     identityCli,
 		Compute:      computeCli,
+		Image:        imageCli,
 		Network:      networkCli,
 		Loadbalancer: loadBalancerCli,
 		Storage:      storageCli,
@@ -235,6 +243,15 @@ func newIdentityCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceC
 
 func newComputeCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(
+		provider,
+		gophercloud.EndpointOpts{
+			Region: os.Getenv("OS_REGION_NAME"),
+		},
+	)
+}
+
+func newImageCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
+	return openstack.NewImageV2(
 		provider,
 		gophercloud.EndpointOpts{
 			Region: os.Getenv("OS_REGION_NAME"),
