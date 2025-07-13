@@ -37,7 +37,7 @@ func newEncoder() zapcore.Encoder {
 		case zapcore.WarnLevel:
 			enc.AppendString("WARN")
 		case zapcore.ErrorLevel:
-			redError := fmt.Sprintf("%s%s%s", red, l.CapitalString(), reset)
+			redError := fmt.Sprintf("%s%s%s", red, "ERRO", reset)
 			enc.AppendString(redError)
 		case zapcore.DPanicLevel:
 			enc.AppendString("DPAN")
