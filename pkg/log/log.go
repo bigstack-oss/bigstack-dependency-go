@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 
 	pluginZap "github.com/micro/plugins/v5/logger/zap"
@@ -8,6 +9,11 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	rotator "gopkg.in/natefinch/lumberjack.v2"
+)
+
+const (
+	red   = "\033[31m"
+	reset = "\033[0m"
 )
 
 func newMultiWriteSyncer(rotator zapcore.WriteSyncer) zapcore.WriteSyncer {
@@ -31,7 +37,8 @@ func newEncoder() zapcore.Encoder {
 		case zapcore.WarnLevel:
 			enc.AppendString("WARN")
 		case zapcore.ErrorLevel:
-			enc.AppendString("ERRO")
+			redError := fmt.Sprintf("%s%s%s", red, l.CapitalString(), reset)
+			enc.AppendString(redError)
 		case zapcore.DPanicLevel:
 			enc.AppendString("DPAN")
 		case zapcore.PanicLevel:
