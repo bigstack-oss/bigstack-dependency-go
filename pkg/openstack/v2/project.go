@@ -8,6 +8,21 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/identity/v3/projects"
 )
 
+func (h *Helper) IsProjectExists(name string) (bool, error) {
+	projects, err := h.ListProjects(&projects.ListOpts{Name: name})
+	if err != nil {
+		return false, err
+	}
+
+	for _, project := range projects {
+		if project.Name == name {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (h *Helper) ListProjects(opts *projects.ListOpts) ([]projects.Project, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
