@@ -35,6 +35,18 @@ func (h *Helper) ListProjects(opts *projects.ListOpts) ([]projects.Project, erro
 	return projects.ExtractProjects(pages)
 }
 
+func (h *Helper) GetProject(id string) (*projects.Project, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	project, err := projects.Get(ctx, h.Identity, id).Extract()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project by id %s(%v)", id, err)
+	}
+
+	return project, nil
+}
+
 func (h *Helper) GetProjectIdByName(name string) (string, error) {
 	projects, err := h.ListProjects(&projects.ListOpts{Name: name})
 	if err != nil {
