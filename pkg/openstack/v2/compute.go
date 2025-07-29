@@ -100,6 +100,18 @@ func (h *Helper) IsImageExist(name string) (bool, error) {
 	)
 }
 
+func (h *Helper) ListImages() ([]images.Image, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := images.List(h.Image, images.ListOpts{}).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return images.ExtractImages(pages)
+}
+
 func (h *Helper) IsFlavorExist(name string) (bool, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
