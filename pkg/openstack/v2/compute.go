@@ -112,6 +112,32 @@ func (h *Helper) ListImages() ([]images.Image, error) {
 	return images.ExtractImages(pages)
 }
 
+func (h *Helper) GetImageByName(name string) (*images.Image, error) {
+	images, err := h.ListImages()
+	if err != nil {
+		return nil, err
+	}
+	if len(images) == 0 {
+		return nil, fmt.Errorf("no images found")
+	}
+
+	for _, image := range images {
+		if image.Name == name {
+			return &image, nil
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"image with name %s not found", name,
+	)
+}
+
+func (h *Helper) UpdateImageProperty(id string, opts images.UpdateOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return images.Update(ctx, h.Image, id, opts).Err
+}
+
 func (h *Helper) IsFlavorExist(name string) (bool, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
