@@ -30,6 +30,12 @@ func (h *Helper) ListServers(opts servers.ListOpts) ([]servers.Server, error) {
 	return servers.ExtractServers(pages)
 }
 
+func (h *Helper) GetServer(id string) (*servers.Server, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return servers.Get(ctx, h.Compute, id).Extract()
+}
+
 func (h *Helper) GetHypervisorStatistics() (*hypervisors.Statistics, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
