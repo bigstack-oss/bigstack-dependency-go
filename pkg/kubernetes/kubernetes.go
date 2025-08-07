@@ -54,8 +54,9 @@ type PodClient interface {
 
 type JobClient interface {
 	Create(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error)
-	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
 
 type DeploymentClient interface {
@@ -984,6 +985,12 @@ func (h *Helper) GetJob(name string) (*batchv1.Job, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	return h.JobClient.Get(ctx, name, metav1.GetOptions{})
+}
+
+func (h *Helper) ListJobs(opt metav1.ListOptions) (*batchv1.JobList, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.JobClient.List(ctx, opt)
 }
 
 func (h *Helper) DeleteJob(name string) error {
