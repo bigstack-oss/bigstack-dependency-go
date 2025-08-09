@@ -81,3 +81,9 @@ func (h *Helper) CreateProject(name string) (*projects.Project, error) {
 		},
 	).Extract()
 }
+
+func (h *Helper) DeleteProject(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return projects.Delete(ctx, h.Identity, id).Err
+}

@@ -77,3 +77,9 @@ func (h *Helper) GetUserByName(name string) (*users.User, error) {
 
 	return nil, fmt.Errorf("user %s not found", name)
 }
+
+func (h *Helper) DeleteUser(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return users.Delete(ctx, h.Identity, id).Err
+}

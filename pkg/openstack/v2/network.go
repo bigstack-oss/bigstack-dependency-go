@@ -52,10 +52,40 @@ func (h *Helper) CreateNetwork(opts networks.CreateOpts) (*networks.Network, err
 	return networks.Create(ctx, h.Network, opts).Extract()
 }
 
+func (h *Helper) ListSubnets(opts subnets.ListOpts) ([]subnets.Subnet, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := subnets.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return subnets.ExtractSubnets(pages)
+}
+
 func (h *Helper) CreateSubnet(opts subnets.CreateOpts) (*subnets.Subnet, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return subnets.Create(ctx, h.Network, opts).Extract()
+}
+
+func (h *Helper) DeleteSubnet(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return subnets.Delete(ctx, h.Network, id).Err
+}
+
+func (h *Helper) ListRouters(opts routers.ListOpts) ([]routers.Router, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := routers.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return routers.ExtractRouters(pages)
 }
 
 func (h *Helper) CreateRouter(opts routers.CreateOpts) (*routers.Router, error) {
@@ -68,6 +98,12 @@ func (h *Helper) AttachNetworkToRouter(id string, opts routers.AddInterfaceOpts)
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.AddInterface(ctx, h.Network, id, opts).Extract()
+}
+
+func (h *Helper) DeleteRouter(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return routers.Delete(ctx, h.Network, id).Err
 }
 
 func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
@@ -215,6 +251,12 @@ func (h *Helper) CreateShareNetwork(client *gophercloud.ServiceClient, opts shar
 	return sharenetworks.Create(ctx, client, opts).Extract()
 }
 
+func (h *Helper) DeleteShareNetwork(client *gophercloud.ServiceClient, id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return sharenetworks.Delete(ctx, client, id).Err
+}
+
 func (h *Helper) ListLoadBalancers(opts loadbalancers.ListOpts) ([]loadbalancers.LoadBalancer, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -227,6 +269,12 @@ func (h *Helper) ListLoadBalancers(opts loadbalancers.ListOpts) ([]loadbalancers
 	return loadbalancers.ExtractLoadBalancers(pages)
 }
 
+func (h *Helper) GetLoadBalancer(id string) (*loadbalancers.LoadBalancer, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return loadbalancers.Get(ctx, h.Loadbalancer, id).Extract()
+}
+
 func (h *Helper) ListFloatingIPs(opts floatingips.ListOpts) ([]floatingips.FloatingIP, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -237,4 +285,21 @@ func (h *Helper) ListFloatingIPs(opts floatingips.ListOpts) ([]floatingips.Float
 	}
 
 	return floatingips.ExtractFloatingIPs(pages)
+}
+
+func (h *Helper) DeleteLoadBalancer(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return loadbalancers.Delete(
+		ctx,
+		h.Loadbalancer,
+		id,
+		loadbalancers.DeleteOpts{Cascade: true},
+	).Err
+}
+
+func (h *Helper) DeleteFloatingIP(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return floatingips.Delete(ctx, h.Network, id).Err
 }
