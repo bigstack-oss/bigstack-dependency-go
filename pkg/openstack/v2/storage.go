@@ -33,6 +33,12 @@ func (h *Helper) GetVolume(volumeId string) (*volumes.Volume, error) {
 	return volumes.Get(ctx, h.Storage, volumeId).Extract()
 }
 
+func (h *Helper) DeleteVolume(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return volumes.Delete(ctx, h.Storage, id, volumes.DeleteOpts{Cascade: true}).Err
+}
+
 func (h *Helper) ListShares(opts shares.ListOpts) ([]shares.Share, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -43,4 +49,10 @@ func (h *Helper) ListShares(opts shares.ListOpts) ([]shares.Share, error) {
 	}
 
 	return shares.ExtractShares(pages)
+}
+
+func (h *Helper) DeleteShare(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return shares.Delete(ctx, h.Share, id).ExtractErr()
 }

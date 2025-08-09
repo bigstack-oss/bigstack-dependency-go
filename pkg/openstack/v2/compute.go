@@ -36,6 +36,12 @@ func (h *Helper) GetServer(id string) (*servers.Server, error) {
 	return servers.Get(ctx, h.Compute, id).Extract()
 }
 
+func (h *Helper) DeleteServer(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return servers.Delete(ctx, h.Compute, id).Err
+}
+
 func (h *Helper) GetHypervisorStatistics() (*hypervisors.Statistics, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()

@@ -3,6 +3,7 @@ package rancher
 import (
 	"encoding/json"
 	"fmt"
+	nethttp "net/http"
 	"net/url"
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/http"
@@ -202,6 +203,31 @@ func (h *Helper) CreateKubernetes(cluster *Cluster) (*ClusterResponse, error) {
 	)
 }
 
+func (h *Helper) DeleteKubernetes(name string) error {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return err
+	}
+
+	u.Path = fmt.Sprintf("/v1/provisioning.cattle.io.clusters/fleet-default/%s", name)
+	resp, err := h.Http.R().
+		SetHeaders(GenAuthHeaders(h.Options.Token)).
+		Delete(u.String())
+	if err != nil {
+		return err
+	}
+	if !resp.IsError() {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"failed to delete kubernetes %s (%d %s)",
+		name,
+		resp.StatusCode(),
+		string(resp.Body()),
+	)
+}
+
 func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
@@ -211,12 +237,7 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 
 	u.Path = fmt.Sprintf("/apis/provisioning.cattle.io/v1/namespaces/fleet-default/clusters/%s", name)
 	attemptsMax := 240
-
-	for {
-		if attemptsMax <= 0 {
-			break
-		}
-
+	for range attemptsMax {
 		wait.Seconds(10)
 		statusResp := &StatusResponse{}
 		resp, err := h.Http.R().
@@ -224,13 +245,11 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 			SetHeaders(GenAuthHeaders(h.Options.Token)).
 			Get(u.String())
 		if err != nil {
-			attemptsMax--
 			log.Errorf("rancher: failed to request GET kubernetes status(%v)", err)
 			continue
 		}
 
 		if !http.Is2XXCode[resp.StatusCode()] {
-			attemptsMax--
 			log.Infof("rancher: kubernetes status response is not 2xx code(%d %s)", resp.StatusCode(), resp.String())
 			continue
 		}
@@ -240,11 +259,39 @@ func (h *Helper) WaitKubernetesActive(name string) (*StatusResponse, error) {
 		}
 
 		log.Infof("rancher: kubernetes cluster %s is not ready yet, waiting...", name)
-		attemptsMax--
 	}
 
 	return nil, fmt.Errorf(
 		"kubernetes cluster is not ready until %d seconds",
+		10*240,
+	)
+}
+
+func (h *Helper) WaitKubernetesDeleted(name string) error {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return err
+	}
+
+	u.Path = fmt.Sprintf("/apis/provisioning.cattle.io/v1/namespaces/fleet-default/clusters/%s", name)
+	attemptsMax := 240
+	for range attemptsMax {
+		wait.Seconds(10)
+		resp, err := h.Http.R().
+			SetHeaders(GenAuthHeaders(h.Options.Token)).
+			Get(u.String())
+		if err != nil {
+			continue
+		}
+
+		if resp.StatusCode() == nethttp.StatusNotFound {
+			return nil
+		}
+	}
+
+	return fmt.Errorf(
+		"failed to delete kubernetes %s until %d seconds",
+		name,
 		10*240,
 	)
 }
