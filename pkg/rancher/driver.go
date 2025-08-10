@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-func (h *Helper) ActiveNodeDriver(name string) error {
+func (h *Helper) ActivateNodeDriver(name string) error {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
 		return err
