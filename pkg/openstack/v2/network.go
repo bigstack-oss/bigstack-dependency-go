@@ -30,6 +30,12 @@ func (h *Helper) ListNetworks(opts networks.ListOpts) ([]networks.Network, error
 	return networks.ExtractNetworks(pages)
 }
 
+func (h *Helper) DeleteNetwork(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return networks.Delete(ctx, h.Network, id).Err
+}
+
 func (h *Helper) GetNetworkByName(opts networks.ListOpts) (*networks.Network, error) {
 	networks, err := h.ListNetworks(opts)
 	if err != nil {
