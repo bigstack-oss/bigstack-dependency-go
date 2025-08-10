@@ -106,6 +106,17 @@ func (h *Helper) DeleteRouter(id string) error {
 	return routers.Delete(ctx, h.Network, id).Err
 }
 
+func (h *Helper) DeleteRouterInterface(routerId string, opts routers.RemoveInterfaceOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return routers.RemoveInterface(
+		ctx,
+		h.Network,
+		routerId,
+		opts,
+	).Err
+}
+
 func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -293,7 +304,7 @@ func (h *Helper) GetLoadBalancer(id string) (*loadbalancers.LoadBalancer, error)
 	return loadbalancers.Get(ctx, h.Loadbalancer, id).Extract()
 }
 
-func (h *Helper) ListFloatingIPs(opts floatingips.ListOpts) ([]floatingips.FloatingIP, error) {
+func (h *Helper) ListFloatingIps(opts floatingips.ListOpts) ([]floatingips.FloatingIP, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
@@ -303,6 +314,17 @@ func (h *Helper) ListFloatingIPs(opts floatingips.ListOpts) ([]floatingips.Float
 	}
 
 	return floatingips.ExtractFloatingIPs(pages)
+}
+
+func (h *Helper) DisassociateFloatingIp(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return floatingips.Update(
+		ctx,
+		h.Network,
+		id,
+		floatingips.UpdateOpts{PortID: nil},
+	).Err
 }
 
 func (h *Helper) DeleteLoadBalancer(id string) error {
