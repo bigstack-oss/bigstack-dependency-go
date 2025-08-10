@@ -164,6 +164,24 @@ func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
 	return nil, fmt.Errorf("port with ip %s not found", ip)
 }
 
+func (h *Helper) ListPorts(opts ports.ListOpts) ([]ports.Port, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := ports.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return ports.ExtractPorts(pages)
+}
+
+func (h *Helper) DeletePort(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return ports.Delete(ctx, h.Network, id).Err
+}
+
 func (h *Helper) GetSubnetByName(opts subnets.ListOpts) (*subnets.Subnet, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
