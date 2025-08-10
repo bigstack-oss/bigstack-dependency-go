@@ -11,7 +11,8 @@ func (h *Helper) ActivateNodeDriver(name string) error {
 		return err
 	}
 
-	u.Path = fmt.Sprintf("/v3/nodeDrivers/%s?action=activate", name)
+	u.Path = fmt.Sprintf("/v3/nodeDrivers/%s", name)
+	u.RawQuery = "action=activate"
 	resp, err := h.Http.R().
 		SetHeaders(GenAuthHeaders(h.Options.Token)).
 		Post(u.String())
