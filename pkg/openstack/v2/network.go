@@ -94,6 +94,12 @@ func (h *Helper) CreateRouter(opts routers.CreateOpts) (*routers.Router, error) 
 	return routers.Create(ctx, h.Network, opts).Extract()
 }
 
+func (h *Helper) UpdateRouter(id string, opts routers.UpdateOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return routers.Update(ctx, h.Network, id, opts).Err
+}
+
 func (h *Helper) AttachNetworkToRouter(id string, opts routers.AddInterfaceOpts) (*routers.InterfaceInfo, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
