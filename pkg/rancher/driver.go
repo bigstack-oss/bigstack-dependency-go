@@ -24,8 +24,9 @@ func (h *Helper) ActivateNodeDriver(name string) error {
 	}
 
 	return fmt.Errorf(
-		"failed to activate node driver %s(%s)",
+		"failed to activate node driver %s (%s %s)",
 		name,
+		u.String(),
 		resp.String(),
 	)
 }
