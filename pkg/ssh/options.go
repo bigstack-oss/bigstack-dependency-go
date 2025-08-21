@@ -15,6 +15,12 @@ type Options struct {
 	Timeout         time.Duration
 }
 
+func Host(host string) Option {
+	return func(o *Options) {
+		o.Host = host
+	}
+}
+
 func User(user string) Option {
 	return func(o *Options) {
 		o.User = user
