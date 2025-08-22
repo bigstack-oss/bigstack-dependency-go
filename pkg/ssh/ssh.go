@@ -2,9 +2,12 @@ package ssh
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/pkg/sftp"
 	log "go-micro.dev/v5/logger"
 	"golang.org/x/crypto/ssh"
 )
@@ -24,9 +27,15 @@ type SessionClient interface {
 	Close() error
 }
 
+type SftpClient interface {
+	Create(string) (*sftp.File, error)
+}
+
 type Helper struct {
+	SshClientPtr *ssh.Client
 	DialClient
 	SessionClient
+	SftpClient
 	Options
 }
 
@@ -75,15 +84,22 @@ func (h *Helper) SetClients() error {
 	}
 
 	var err error
-	h.DialClient, err = ssh.Dial("tcp", h.Host, config)
+	h.SshClientPtr, err = ssh.Dial("tcp", h.Host, config)
 	if err != nil {
 		log.Errorf("ssh: failed to connect to node %s(%v)", h.Host, err)
 		return err
 	}
 
+	h.DialClient = h.SshClientPtr
 	h.SessionClient, err = h.DialClient.NewSession()
 	if err != nil {
 		log.Errorf("ssh: failed to create session for node %s(%v)", h.Host, err)
+		return err
+	}
+
+	h.SftpClient, err = sftp.NewClient(h.SshClientPtr)
+	if err != nil {
+		log.Errorf("ssh: failed to create SFTP client for node %s(%v)", h.Host, err)
 		return err
 	}
 
@@ -104,6 +120,30 @@ func (h *Helper) Run(cmd string) error {
 	return nil
 }
 
+func (h *Helper) Copy(srcPath, dstPath string) error {
+	srcFile, err := os.Open(srcPath)
+	if err != nil {
+		log.Errorf("ssh: failed to open source file %s(%v)", srcPath, err)
+		return err
+	}
+
+	defer srcFile.Close()
+	dstFile, err := h.SftpClient.Create(dstPath)
+	if err != nil {
+		log.Errorf("ssh: failed to create destination file %s(%v)", dstPath, err)
+		return err
+	}
+
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		log.Errorf("ssh: failed to copy file from %s to %s:%s(%v)", srcPath, h.Host, dstPath, err)
+		return err
+	}
+
+	return nil
+}
+
 func (h *Helper) Close() {
 	if h.SessionClient != nil {
 		h.SessionClient.Close()
@@ -111,5 +151,9 @@ func (h *Helper) Close() {
 
 	if h.DialClient != nil {
 		h.DialClient.Close()
+	}
+
+	if h.SshClientPtr != nil {
+		h.SshClientPtr.Close()
 	}
 }
