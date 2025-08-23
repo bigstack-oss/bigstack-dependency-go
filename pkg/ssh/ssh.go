@@ -79,6 +79,7 @@ func initOptions(opts []Option) *Options {
 func (h *Helper) SetClients() error {
 	config := &ssh.ClientConfig{
 		User:            h.User,
+		Auth:            []ssh.AuthMethod{h.AuthMethod},
 		HostKeyCallback: h.HostKeyCallback,
 		Timeout:         h.Timeout,
 	}

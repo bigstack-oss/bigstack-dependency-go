@@ -11,6 +11,7 @@ type Option func(*Options)
 type Options struct {
 	Host            string
 	User            string
+	AuthMethod      ssh.AuthMethod
 	HostKeyCallback ssh.HostKeyCallback
 	Timeout         time.Duration
 }
@@ -36,5 +37,11 @@ func HostKeyCallback(callback ssh.HostKeyCallback) Option {
 func Timeout(timeout time.Duration) Option {
 	return func(o *Options) {
 		o.Timeout = timeout
+	}
+}
+
+func AuthMethod(method ssh.AuthMethod) Option {
+	return func(o *Options) {
+		o.AuthMethod = method
 	}
 }
