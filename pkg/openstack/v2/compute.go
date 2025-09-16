@@ -124,6 +124,12 @@ func (h *Helper) ListImages() ([]images.Image, error) {
 	return images.ExtractImages(pages)
 }
 
+func (h *Helper) GetImage(id string) (*images.Image, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return images.Get(ctx, h.Image, id).Extract()
+}
+
 func (h *Helper) GetImageByName(name string) (*images.Image, error) {
 	images, err := h.ListImages()
 	if err != nil {
