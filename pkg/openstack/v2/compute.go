@@ -86,7 +86,7 @@ func (h *Helper) GetHypervisorUpTime(id string) (*hypervisors.Uptime, error) {
 	return hypervisors.GetUptime(ctx, h.Compute, id).Extract()
 }
 
-func (h *Helper) IsImageExist(name string) (bool, error) {
+func (h *Helper) IsImageExistByName(name string) (bool, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	opts := images.ListOpts{Name: name}
@@ -109,6 +109,32 @@ func (h *Helper) IsImageExist(name string) (bool, error) {
 	return false, fmt.Errorf(
 		"image %s not found",
 		name,
+	)
+}
+
+func (h *Helper) IsImageExist(id string) (bool, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	opts := images.ListOpts{ID: id}
+	pages, err := images.List(h.Image, opts).AllPages(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	list, err := images.ExtractImages(pages)
+	if err != nil {
+		return false, err
+	}
+
+	for _, image := range list {
+		if image.ID == id {
+			return true, nil
+		}
+	}
+
+	return false, fmt.Errorf(
+		"image %s not found",
+		id,
 	)
 }
 
