@@ -6,8 +6,21 @@ import (
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/quotasets"
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumetypes"
 	"github.com/gophercloud/gophercloud/v2/openstack/sharedfilesystems/v2/shares"
 )
+
+func (h *Helper) ListVolumeTypes(opts volumetypes.ListOpts) ([]volumetypes.VolumeType, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := volumetypes.List(h.Storage, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return volumetypes.ExtractVolumeTypes(pages)
+}
 
 func (h *Helper) UpdateStorageQuotas(projectId string, opts quotasets.UpdateOpts) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
