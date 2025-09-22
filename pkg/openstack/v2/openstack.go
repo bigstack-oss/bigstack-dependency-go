@@ -281,7 +281,8 @@ func newStorageCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceCl
 	return openstack.NewBlockStorageV3(
 		provider,
 		gophercloud.EndpointOpts{
-			Region: os.Getenv("OS_REGION_NAME"),
+			Region:  os.Getenv("OS_REGION_NAME"),
+			Version: 3,
 		},
 	)
 }
