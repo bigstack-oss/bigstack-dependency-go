@@ -138,11 +138,11 @@ func (h *Helper) IsImageExist(id string) (bool, error) {
 	)
 }
 
-func (h *Helper) ListImages() ([]images.Image, error) {
+func (h *Helper) ListImages(opts images.ListOpts) ([]images.Image, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
-	pages, err := images.List(h.Image, images.ListOpts{}).AllPages(ctx)
+	pages, err := images.List(h.Image, opts).AllPages(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (h *Helper) GetImage(id string) (*images.Image, error) {
 }
 
 func (h *Helper) GetImageByName(name string) (*images.Image, error) {
-	images, err := h.ListImages()
+	images, err := h.ListImages(images.ListOpts{Name: name})
 	if err != nil {
 		return nil, err
 	}
