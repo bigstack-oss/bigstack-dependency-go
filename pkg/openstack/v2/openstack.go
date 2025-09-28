@@ -26,6 +26,7 @@ type Helper struct {
 	Compute      *gophercloud.ServiceClient
 	Image        *gophercloud.ServiceClient
 	Network      *gophercloud.ServiceClient
+	Dns          *gophercloud.ServiceClient
 	Loadbalancer *gophercloud.ServiceClient
 	Storage      *gophercloud.ServiceClient
 	Share        *gophercloud.ServiceClient
@@ -82,6 +83,12 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		return nil, err
 	}
 
+	dnsCli, err := newDnsCli(provider)
+	if err != nil {
+		log.Errorf("failed to create dns client: %s", err.Error())
+		return nil, err
+	}
+
 	loadBalancerCli, err := newLoadBalancerCli(provider)
 	if err != nil {
 		log.Errorf("failed to create loadbalancer client: %s", err.Error())
@@ -106,6 +113,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		Compute:      computeCli,
 		Image:        imageCli,
 		Network:      networkCli,
+		Dns:          dnsCli,
 		Loadbalancer: loadBalancerCli,
 		Storage:      storageCli,
 		Share:        shareCli,
@@ -261,6 +269,15 @@ func newImageCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClie
 
 func newNetworkCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
 	return openstack.NewNetworkV2(
+		provider,
+		gophercloud.EndpointOpts{
+			Region: os.Getenv("OS_REGION_NAME"),
+		},
+	)
+}
+
+func newDnsCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
+	return openstack.NewDNSV2(
 		provider,
 		gophercloud.EndpointOpts{
 			Region: os.Getenv("OS_REGION_NAME"),

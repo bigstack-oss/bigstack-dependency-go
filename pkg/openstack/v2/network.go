@@ -6,6 +6,8 @@ import (
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
+	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/loadbalancers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
@@ -354,4 +356,58 @@ func (h *Helper) DeleteFloatingIP(id string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return floatingips.Delete(ctx, h.Network, id).Err
+}
+
+func (h *Helper) CreateDnsZone(opts zones.CreateOpts) (*zones.Zone, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return zones.Create(ctx, h.Dns, opts).Extract()
+}
+
+func (h *Helper) DeleteDnsZone(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return zones.Delete(ctx, h.Dns, id).Err
+}
+
+func (h *Helper) ListDnsZones(opts zones.ListOpts) ([]zones.Zone, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := zones.List(h.Dns, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return zones.ExtractZones(pages)
+}
+
+func (h *Helper) GetDnsZoneByName(name string) (*zones.Zone, error) {
+	zones, err := h.ListDnsZones(zones.ListOpts{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, zone := range zones {
+		if zone.Name == name {
+			return &zone, nil
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"dns zone %s not found",
+		name,
+	)
+}
+
+func (h *Helper) CreateDnsRecord(zoneId string, opts recordsets.CreateOpts) (*recordsets.RecordSet, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return recordsets.Create(ctx, h.Dns, zoneId, opts).Extract()
+}
+
+func (h *Helper) DeleteDnsRecord(zoneId, id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return recordsets.Delete(ctx, h.Dns, zoneId, id).Err
 }
