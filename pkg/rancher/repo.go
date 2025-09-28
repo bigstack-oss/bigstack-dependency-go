@@ -13,8 +13,10 @@ type Repo struct {
 }
 
 type RepoSpec struct {
-	Url          string    `json:"url"`
-	ClientSecret SecretRef `json:"clientSecret"`
+	Url                   string    `json:"url"`
+	ClientSecret          SecretRef `json:"clientSecret"`
+	InsecurePlainHttp     bool      `json:"insecurePlainHttp"`
+	InsecureSkipTlsVerify bool      `json:"insecureSkipTlsVerify"`
 }
 
 type SecretRef struct {
