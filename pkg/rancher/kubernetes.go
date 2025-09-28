@@ -209,7 +209,7 @@ func (h *Helper) CreateRancherSecret(secret *Secret) (*SecretResponse, error) {
 	)
 }
 
-func (h *Helper) CreateClusterSecret(clusterId, secret *Secret) (*SecretResponse, error) {
+func (h *Helper) CreateClusterSecret(clusterId string, secret *Secret) (*SecretResponse, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
 		return nil, err
