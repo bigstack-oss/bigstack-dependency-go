@@ -114,8 +114,14 @@ type Etcd struct {
 type S3 struct{}
 
 type Registries struct {
-	Configs map[string]string   `json:"configs"`
+	Configs map[string]Registry `json:"configs"`
 	Mirrors map[string]MirrorTo `json:"mirrors"`
+}
+
+type Registry struct {
+	AuthConfigSecretName string `json:"authConfigSecretName"`
+	CaBundle             string `json:"caBundle"`
+	InsecureSkipVerify   bool   `json:"insecureSkipVerify"`
 }
 
 type MirrorTo struct {
@@ -168,6 +174,39 @@ type Status struct {
 
 func (c *Cluster) Bytes() ([]byte, error) {
 	return json.Marshal(c)
+}
+
+func (h *Helper) CreateSecret(secret *Secret) (*SecretResponse, error) {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = "/v1/secrets/fleet-default"
+	b, err := secret.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	secretResp := &SecretResponse{}
+	resp, err := h.Http.R().
+		SetResult(secretResp).
+		SetHeaders(GenAuthHeaders(h.Options.Token)).
+		SetBody(string(b)).
+		Post(u.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.IsError() {
+		return secretResp, nil
+	}
+
+	return nil, fmt.Errorf(
+		"failed to create secret (%d %s)",
+		resp.StatusCode(),
+		resp.String(),
+	)
 }
 
 func (h *Helper) CreateKubernetes(cluster *Cluster) (*ClusterResponse, error) {
