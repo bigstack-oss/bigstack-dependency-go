@@ -176,13 +176,46 @@ func (c *Cluster) Bytes() ([]byte, error) {
 	return json.Marshal(c)
 }
 
-func (h *Helper) CreateSecret(secret *Secret) (*SecretResponse, error) {
+func (h *Helper) CreateRancherSecret(secret *Secret) (*SecretResponse, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	u.Path = "/v1/secrets/fleet-default"
+	b, err := secret.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	secretResp := &SecretResponse{}
+	resp, err := h.Http.R().
+		SetResult(secretResp).
+		SetHeaders(GenAuthHeaders(h.Options.Token)).
+		SetBody(string(b)).
+		Post(u.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.IsError() {
+		return secretResp, nil
+	}
+
+	return nil, fmt.Errorf(
+		"failed to create secret (%d %s)",
+		resp.StatusCode(),
+		resp.String(),
+	)
+}
+
+func (h *Helper) CreateClusterSecret(clusterId, secret *Secret) (*SecretResponse, error) {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = fmt.Sprintf("/k8s/clusters/%s/v1/secrets/cattle-system", clusterId)
 	b, err := secret.Bytes()
 	if err != nil {
 		return nil, err
