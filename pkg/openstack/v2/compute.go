@@ -206,3 +206,14 @@ func (h *Helper) IsFlavorExist(name string) (bool, error) {
 		name,
 	)
 }
+
+func (h *Helper) UpdateServer(id string, opts servers.UpdateOpts) (*servers.Server, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	res := servers.Update(ctx, h.Compute, id, opts)
+	if res.Err != nil {
+		return nil, res.Err
+	}
+	return res.Extract()
+}
