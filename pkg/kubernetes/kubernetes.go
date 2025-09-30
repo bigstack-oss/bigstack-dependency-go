@@ -88,6 +88,7 @@ type NodeClient interface {
 
 type SvcClient interface {
 	Get(context.Context, string, metav1.GetOptions) (*corev1.Service, error)
+	Create(context.Context, *corev1.Service, metav1.CreateOptions) (*corev1.Service, error)
 }
 
 type StorageClassClient interface {
