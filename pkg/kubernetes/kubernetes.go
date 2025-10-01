@@ -280,8 +280,8 @@ func (h *Helper) SetDeploymentClient() {
 	h.DeploymentClient = h.clientset.AppsV1().Deployments(h.Namespace)
 }
 
-func (h *Helper) SetSVCClient() {
-	h.SvcClient = h.clientset.CoreV1().Services(h.Namespace)
+func (h *Helper) SetSvcClient(namespace string) {
+	h.SvcClient = h.clientset.CoreV1().Services(namespace)
 }
 
 func (h *Helper) SetLeaseClient(id string, name string, namespace string) {
