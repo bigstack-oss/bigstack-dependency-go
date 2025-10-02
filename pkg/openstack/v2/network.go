@@ -8,6 +8,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones"
+	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/flavorprofiles"
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/loadbalancers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
@@ -350,6 +351,18 @@ func (h *Helper) DeleteLoadBalancer(id string) error {
 		id,
 		loadbalancers.DeleteOpts{Cascade: true},
 	).Err
+}
+
+func (h *Helper) ListFlavorProfile(opts flavorprofiles.ListOpts) ([]flavorprofiles.FlavorProfile, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := flavorprofiles.List(h.Loadbalancer, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return flavorprofiles.ExtractFlavorProfiles(pages)
 }
 
 func (h *Helper) DeleteFloatingIP(id string) error {
