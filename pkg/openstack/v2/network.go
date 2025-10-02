@@ -353,7 +353,7 @@ func (h *Helper) DeleteLoadBalancer(id string) error {
 	).Err
 }
 
-func (h *Helper) ListFlavorProfile(opts flavorprofiles.ListOpts) ([]flavorprofiles.FlavorProfile, error) {
+func (h *Helper) ListFlavorProfiles(opts flavorprofiles.ListOpts) ([]flavorprofiles.FlavorProfile, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
