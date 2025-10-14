@@ -17,6 +17,7 @@ require (
 	github.com/hashicorp/terraform-exec v0.23.0
 	github.com/hashicorp/terraform-json v0.24.0
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
+	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/micro/plugins/v5/logger/zap v1.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.9
