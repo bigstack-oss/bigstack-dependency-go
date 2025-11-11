@@ -218,7 +218,7 @@ func (h *Helper) Apply(release, namespace string) error {
 	hasInstalled = (err == nil) && (rel.Name == release)
 	if hasInstalled {
 		_, err = h.UpgradeClient.RunWithContext(ctx, release, h.Chart, h.Values)
-		return fmt.Errorf("failed to upgrade release %s(%v)", release, err)
+		return err
 	}
 
 	h.InstallClientPtr.ReleaseName = release
