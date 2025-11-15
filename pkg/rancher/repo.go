@@ -16,7 +16,7 @@ type RepoSpec struct {
 	Url                   string    `json:"url"`
 	ClientSecret          SecretRef `json:"clientSecret"`
 	InsecurePlainHttp     bool      `json:"insecurePlainHttp"`
-	InsecureSkipTlsVerify bool      `json:"insecureSkipTlsVerify"`
+	InsecureSkipTlsVerify bool      `json:"insecureSkipTLSVerify"`
 }
 
 type SecretRef struct {
