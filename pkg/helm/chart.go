@@ -3,6 +3,7 @@ package helm
 import "helm.sh/helm/v3/pkg/cli/values"
 
 type Chart struct {
+	Type                string `yaml:"type"`
 	Release             string `yaml:"release"`
 	Version             string `yaml:"version"`
 	Namespace           string `yaml:"namespace"`
