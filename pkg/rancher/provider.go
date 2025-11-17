@@ -28,12 +28,12 @@ type OpenstackMachine struct {
 type Metadata struct {
 	Name            string `json:"name"`
 	Annotations     `json:"annotations"`
-	Finalizers      []string `json:"finalizers,omitempty"`
-	GenerateName    string   `json:"generateName,omitempty"`
-	Labels          `json:"labels"`
-	ManagedFields   []any    `json:"managedFields,omitempty"`
-	Namespace       string   `json:"namespace"`
-	OwnerReferences []string `json:"ownerReferences,omitempty"`
+	Finalizers      []string          `json:"finalizers,omitempty"`
+	GenerateName    string            `json:"generateName,omitempty"`
+	Labels          map[string]string `json:"labels"`
+	ManagedFields   []any             `json:"managedFields,omitempty"`
+	Namespace       string            `json:"namespace"`
+	OwnerReferences []string          `json:"ownerReferences,omitempty"`
 }
 
 type OpenstackMachineResponse struct {
