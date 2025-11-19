@@ -18,6 +18,25 @@ type Cluster struct {
 	Spec     `json:"spec"`
 }
 
+type ListClusterResponse struct {
+	Data ListClusterData `json:"data"`
+}
+
+type ListClusterData struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	Provider  string `json:"provider"`
+	NodeCount int    `json:"nodeCount"`
+	State     string `json:"state"`
+	Version   `json:"version"`
+	Labels    map[string]string `json:"labels"`
+	Created   string            `json:"created"`
+}
+
+type Version struct {
+	GitVersion string `json:"gitVersion"`
+}
+
 type Spec struct {
 	RkeConfig                                            `json:"rkeConfig"`
 	MachineSelectorConfig                                []MachineSelectorConfig `json:"machineSelectorConfig"`
@@ -273,6 +292,28 @@ func (h *Helper) CreateKubernetes(cluster *Cluster) (*ClusterResponse, error) {
 		resp.StatusCode(),
 		resp.String(),
 	)
+}
+
+func (h *Helper) ListKubernetes() ([]ListClusterResponse, error) {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = "/v3/clusters"
+	clusters := []ListClusterResponse{}
+	resp, err := h.Http.R().
+		SetResult(clusters).
+		SetHeaders(GenAuthHeaders(h.Options.Token)).
+		Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	if resp.IsError() {
+		return nil, err
+	}
+
+	return clusters, nil
 }
 
 func (h *Helper) DeleteKubernetes(name string) error {
