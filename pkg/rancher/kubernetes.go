@@ -294,14 +294,14 @@ func (h *Helper) CreateKubernetes(cluster *Cluster) (*ClusterResponse, error) {
 	)
 }
 
-func (h *Helper) ListKubernetes() ([]ListClusterResponse, error) {
+func (h *Helper) ListKubernetes() (*ListClusterResponse, error) {
 	u, err := url.Parse(h.Options.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	u.Path = "/v3/clusters"
-	clusters := []ListClusterResponse{}
+	clusters := &ListClusterResponse{}
 	resp, err := h.Http.R().
 		SetResult(clusters).
 		SetHeaders(GenAuthHeaders(h.Options.Token)).
