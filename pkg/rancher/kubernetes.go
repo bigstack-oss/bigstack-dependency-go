@@ -19,7 +19,7 @@ type Cluster struct {
 }
 
 type ListClusterResponse struct {
-	Data ListClusterData `json:"data"`
+	Data []ListClusterData `json:"data"`
 }
 
 type ListClusterData struct {
