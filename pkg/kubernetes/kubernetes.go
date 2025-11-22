@@ -62,6 +62,7 @@ type JobClient interface {
 type DeploymentClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*appsv1.Deployment, error)
 	Update(ctx context.Context, deployment *appsv1.Deployment, opts metav1.UpdateOptions) (*appsv1.Deployment, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *appsv1.Deployment, err error)
 }
 
 type NamespaceClient interface {
@@ -397,6 +398,18 @@ func (h *Helper) UpdateDeployment(deployment *appsv1.Deployment) (*appsv1.Deploy
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	return h.DeploymentClient.Update(ctx, deployment, metav1.UpdateOptions{})
+}
+
+func (h *Helper) PatchDeployment(name string, patchData []byte) (*appsv1.Deployment, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.DeploymentClient.Patch(
+		ctx,
+		name,
+		types.StrategicMergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
 }
 
 func (h *Helper) SetLeaseCron(schedule func()) {
