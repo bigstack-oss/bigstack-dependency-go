@@ -147,6 +147,7 @@ type ResourceQuotaClient interface {
 type ConfigMapClient interface {
 	Get(context.Context, string, metav1.GetOptions) (*corev1.ConfigMap, error)
 	Create(ctx context.Context, configMap *corev1.ConfigMap, opts metav1.CreateOptions) (*corev1.ConfigMap, error)
+	Update(ctx context.Context, configMap *corev1.ConfigMap, opts metav1.UpdateOptions) (*corev1.ConfigMap, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 }
 
@@ -975,6 +976,12 @@ func (h *Helper) GetConfigMap(name string) (*corev1.ConfigMap, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
 	defer cancel()
 	return h.ConfigMapClient.Get(ctx, name, metav1.GetOptions{})
+}
+
+func (h *Helper) UpdateConfigMap(configMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.ConfigMapClient.Update(ctx, configMap, metav1.UpdateOptions{})
 }
 
 func (h *Helper) DeleteConfigMap(name string) error {
