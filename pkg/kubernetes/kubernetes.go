@@ -61,6 +61,7 @@ type JobClient interface {
 
 type DeploymentClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*appsv1.Deployment, error)
+	Update(ctx context.Context, deployment *appsv1.Deployment, opts metav1.UpdateOptions) (*appsv1.Deployment, error)
 }
 
 type NamespaceClient interface {
@@ -390,6 +391,12 @@ func (h *Helper) GetDeployment(name string) (*appsv1.Deployment, error) {
 
 		return deployment, nil
 	}
+}
+
+func (h *Helper) UpdateDeployment(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(5))
+	defer cancel()
+	return h.DeploymentClient.Update(ctx, deployment, metav1.UpdateOptions{})
 }
 
 func (h *Helper) SetLeaseCron(schedule func()) {
