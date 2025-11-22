@@ -279,8 +279,8 @@ func (h *Helper) SetConfigMapClient(namespace string) {
 	h.ConfigMapClient = h.clientset.CoreV1().ConfigMaps(namespace)
 }
 
-func (h *Helper) SetDeploymentClient() {
-	h.DeploymentClient = h.clientset.AppsV1().Deployments(h.Namespace)
+func (h *Helper) SetDeploymentClient(namespace string) {
+	h.DeploymentClient = h.clientset.AppsV1().Deployments(namespace)
 }
 
 func (h *Helper) SetSvcClient(namespace string) {
