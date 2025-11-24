@@ -7,6 +7,7 @@ import (
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/goharbor/go-client/pkg/harbor"
 	"github.com/goharbor/go-client/pkg/sdk/v2.0/client/project"
+	"github.com/goharbor/go-client/pkg/sdk/v2.0/client/user"
 	"github.com/goharbor/go-client/pkg/sdk/v2.0/models"
 )
 
@@ -20,8 +21,15 @@ type ProjectCli interface {
 	CreateProject(ctx context.Context, params *project.CreateProjectParams) (*project.CreateProjectCreated, error)
 }
 
+type UserCli interface {
+	CreateUser(ctx context.Context, params *user.CreateUserParams) (*user.CreateUserCreated, error)
+	ListUsers(ctx context.Context, params *user.ListUsersParams) (*user.ListUsersOK, error)
+	SetUserSysAdmin(ctx context.Context, params *user.SetUserSysAdminParams) (*user.SetUserSysAdminOK, error)
+}
+
 type Helper struct {
 	ProjectCli
+	UserCli
 	*Options
 }
 
@@ -65,6 +73,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 
 	return &Helper{
 		ProjectCli: cli.V2().Project,
+		UserCli:    cli.V2().User,
 		Options:    initedOpts,
 	}, nil
 }
@@ -81,6 +90,64 @@ func (h *Helper) CreateProject(name string) (*project.CreateProjectCreated, erro
 					Public: "true",
 				},
 			},
+		},
+	)
+}
+
+func (h *Helper) CreateUser(username, password, email string) (*user.CreateUserCreated, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return h.UserCli.CreateUser(
+		ctx,
+		&user.CreateUserParams{
+			UserReq: &models.UserCreationReq{
+				Username: username,
+				Password: password,
+				Realname: username,
+				Email:    email,
+			},
+		},
+	)
+}
+
+func (h *Helper) SetUserSysAdmin(userId int64) (*user.SetUserSysAdminOK, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return h.UserCli.SetUserSysAdmin(
+		ctx,
+		&user.SetUserSysAdminParams{
+			UserID: userId,
+			SysadminFlag: &models.UserSysAdminFlag{
+				SysadminFlag: true,
+			},
+		},
+	)
+}
+
+func (h *Helper) RevokeUserSysAdmin(userId int64) (*user.SetUserSysAdminOK, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return h.UserCli.SetUserSysAdmin(
+		ctx,
+		&user.SetUserSysAdminParams{
+			UserID: userId,
+			SysadminFlag: &models.UserSysAdminFlag{
+				SysadminFlag: false,
+			},
+		},
+	)
+}
+
+func (h *Helper) ListUsers() (*user.ListUsersOK, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	page := int64(1)
+	size := int64(200)
+	return h.UserCli.ListUsers(
+		ctx,
+		&user.ListUsersParams{
+			Page:     &page,
+			PageSize: &size,
 		},
 	)
 }
