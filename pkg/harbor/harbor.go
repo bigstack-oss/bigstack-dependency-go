@@ -138,11 +138,9 @@ func (h *Helper) RevokeUserSysAdmin(userId int64) (*user.SetUserSysAdminOK, erro
 	)
 }
 
-func (h *Helper) ListUsers() (*user.ListUsersOK, error) {
+func (h *Helper) ListUsers(page, size int64) (*user.ListUsersOK, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
-	page := int64(1)
-	size := int64(200)
 	return h.UserCli.ListUsers(
 		ctx,
 		&user.ListUsersParams{
