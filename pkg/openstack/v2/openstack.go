@@ -30,6 +30,7 @@ type Helper struct {
 	Loadbalancer *gophercloud.ServiceClient
 	Storage      *gophercloud.ServiceClient
 	Share        *gophercloud.ServiceClient
+	ObjectStore  *gophercloud.ServiceClient
 
 	*Options
 }
@@ -107,6 +108,12 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		return nil, err
 	}
 
+	objectStoreCli, err := newObjectStoreCli(provider)
+	if err != nil {
+		log.Errorf("failed to create object store client: %s", err.Error())
+		return nil, err
+	}
+
 	return &Helper{
 		Provider:     provider,
 		Identity:     identityCli,
@@ -117,6 +124,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 		Loadbalancer: loadBalancerCli,
 		Storage:      storageCli,
 		Share:        shareCli,
+		ObjectStore:  objectStoreCli,
 	}, nil
 }
 
@@ -306,6 +314,15 @@ func newStorageCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceCl
 
 func newShareCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
 	return openstack.NewSharedFileSystemV2(
+		provider,
+		gophercloud.EndpointOpts{
+			Region: os.Getenv("OS_REGION_NAME"),
+		},
+	)
+}
+
+func newObjectStoreCli(provider *gophercloud.ProviderClient) (*gophercloud.ServiceClient, error) {
+	return openstack.NewObjectStorageV1(
 		provider,
 		gophercloud.EndpointOpts{
 			Region: os.Getenv("OS_REGION_NAME"),

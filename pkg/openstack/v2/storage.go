@@ -7,6 +7,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/quotasets"
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumetypes"
+	"github.com/gophercloud/gophercloud/v2/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/v2/openstack/sharedfilesystems/v2/shares"
 )
 
@@ -68,4 +69,23 @@ func (h *Helper) DeleteShare(id string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return shares.Delete(ctx, h.Share, id).ExtractErr()
+}
+
+func (h *Helper) ListContainers(opts containers.ListOpts) ([]containers.Container, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := containers.List(h.Storage, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return containers.ExtractInfo(pages)
+}
+
+func (h *Helper) CreateContainer(containerName string, opts containers.CreateOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	_, err := containers.Create(ctx, h.ObjectStore, containerName, opts).Extract()
+	return err
 }
