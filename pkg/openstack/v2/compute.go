@@ -217,3 +217,9 @@ func (h *Helper) UpdateServer(id string, opts servers.UpdateOpts) (*servers.Serv
 	}
 	return res.Extract()
 }
+
+func (h *Helper) GetComputeFlavor(id string) (*flavors.Flavor, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return flavors.Get(ctx, h.Compute, id).Extract()
+}

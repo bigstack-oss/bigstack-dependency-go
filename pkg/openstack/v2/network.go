@@ -354,7 +354,7 @@ func (h *Helper) DeleteLoadBalancer(id string) error {
 	).Err
 }
 
-func (h *Helper) ListFlavorProfiles(opts flavorprofiles.ListOpts) ([]flavorprofiles.FlavorProfile, error) {
+func (h *Helper) ListLoadBalancerFlavorProfiles(opts flavorprofiles.ListOpts) ([]flavorprofiles.FlavorProfile, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
@@ -366,7 +366,13 @@ func (h *Helper) ListFlavorProfiles(opts flavorprofiles.ListOpts) ([]flavorprofi
 	return flavorprofiles.ExtractFlavorProfiles(pages)
 }
 
-func (h *Helper) ListFlavors(opts flavors.ListOpts) ([]flavors.Flavor, error) {
+func (h *Helper) GetLoadBalancerFlavorProfile(id string) (*flavorprofiles.FlavorProfile, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return flavorprofiles.Get(ctx, h.Loadbalancer, id).Extract()
+}
+
+func (h *Helper) ListLoadBalancerFlavors(opts flavors.ListOpts) ([]flavors.Flavor, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
@@ -376,6 +382,12 @@ func (h *Helper) ListFlavors(opts flavors.ListOpts) ([]flavors.Flavor, error) {
 	}
 
 	return flavors.ExtractFlavors(pages)
+}
+
+func (h *Helper) GetLoadBalancerFlavor(id string) (*flavors.Flavor, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return flavors.Get(ctx, h.Loadbalancer, id).Extract()
 }
 
 func (h *Helper) DeleteFloatingIP(id string) error {
