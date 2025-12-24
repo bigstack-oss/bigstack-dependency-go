@@ -160,7 +160,7 @@ func syncOptions(opts []Option) (*Options, error) {
 
 func GenAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 	if opts.Auth.Type == "env" {
-		return openstack.AuthOptionsFromEnv()
+		return ParseAuthEnv(opts)
 	}
 
 	if opts.Auth.Source == "file" {
@@ -175,6 +175,16 @@ func GenAuthOpts(opts *Options) (gophercloud.AuthOptions, error) {
 		DomainName:       opts.Domain.Name,
 		AllowReauth:      opts.EnableAutoRenew,
 	}, nil
+}
+
+func ParseAuthEnv(opts *Options) (gophercloud.AuthOptions, error) {
+	env, err := openstack.AuthOptionsFromEnv()
+	if err != nil {
+		return gophercloud.AuthOptions{}, err
+	}
+
+	env.AllowReauth = opts.EnableAutoRenew
+	return env, nil
 }
 
 func ParseAuthFile(opts *Options) {
