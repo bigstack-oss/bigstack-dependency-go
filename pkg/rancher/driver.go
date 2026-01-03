@@ -79,6 +79,32 @@ func (h *Helper) WaitNodeDriverStatus(name, state string, timeout int) error {
 	)
 }
 
+func (h *Helper) IsNodeDriverConfigable(driver string) (bool, error) {
+	u, err := url.Parse(h.Options.Url)
+	if err != nil {
+		return false, err
+	}
+
+	u.Path = fmt.Sprintf("/v1/rke-machine-config.cattle.io.%sconfigs/fleet-default", strings.ToLower(driver))
+	resp, err := h.Http.R().
+		SetHeaders(GenAuthHeaders(h.Options.Token)).
+		Get(u.String())
+	if err != nil {
+		return false, err
+	}
+
+	if resp.IsError() {
+		return false, fmt.Errorf(
+			"failed to get node driver configs %s (%d %s)",
+			driver,
+			resp.StatusCode(),
+			resp.String(),
+		)
+	}
+
+	return true, nil
+}
+
 func (h *Helper) isNodeDriverMatchedStatus(drivers []NodeDriver, name, state string) bool {
 	for _, driver := range drivers {
 		if driver.Name != name {
