@@ -22,6 +22,7 @@ type OpenstackMachine struct {
 	SshUser        string `json:"sshUser"`
 	TenantId       string `json:"tenantId"`
 	UserId         string `json:"userId"`
+	UserDataFile   string `json:"userDataFile,omitempty"`
 	Type           string `json:"type"`
 }
 
