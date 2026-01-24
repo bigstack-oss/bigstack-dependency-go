@@ -169,13 +169,16 @@ func (h *Helper) UpdateNetworkQuotas(projectId string, opts quotas.UpdateOpts) e
 	return quotas.Update(ctx, h.Network, projectId, opts).Err
 }
 
-func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
+func (h *Helper) GetPortByNetIdAndIp(netId, ip string) (*ports.Port, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
 	pages, err := ports.List(
 		h.Network,
-		ports.ListOpts{FixedIPs: []ports.FixedIPOpts{{IPAddress: ip}}},
+		ports.ListOpts{
+			NetworkID: netId,
+			FixedIPs:  []ports.FixedIPOpts{{IPAddress: ip}},
+		},
 	).AllPages(ctx)
 	if err != nil {
 		return nil, err
@@ -187,6 +190,10 @@ func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
 	}
 
 	for _, port := range ports {
+		if port.NetworkID != netId {
+			continue
+		}
+
 		for _, fixedIP := range port.FixedIPs {
 			if fixedIP.IPAddress == ip {
 				return &port, nil
@@ -194,7 +201,11 @@ func (h *Helper) GetPortByIp(ip string) (*ports.Port, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("port with ip %s not found", ip)
+	return nil, fmt.Errorf(
+		"port with ip %s not found in network %s",
+		ip,
+		netId,
+	)
 }
 
 func (h *Helper) ListPorts(opts ports.ListOpts) ([]ports.Port, error) {
