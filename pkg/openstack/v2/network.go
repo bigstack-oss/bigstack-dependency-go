@@ -133,6 +133,12 @@ func (h *Helper) DeleteRouterInterface(routerId string, opts routers.RemoveInter
 	).Err
 }
 
+func (h *Helper) CreatePort(opts ports.CreateOpts) (*ports.Port, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return ports.Create(ctx, h.Network, opts).Extract()
+}
+
 func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
