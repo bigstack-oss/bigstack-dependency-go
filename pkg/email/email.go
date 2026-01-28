@@ -11,6 +11,10 @@ import (
 	"go-micro.dev/v5/logger"
 )
 
+var (
+	Send = smtp.SendMail
+)
+
 type Client interface {
 	Attach(r io.Reader, filename string, c string) (a *email.Attachment, err error)
 	SendWithStartTLS(addr string, a smtp.Auth, t *tls.Config) error
