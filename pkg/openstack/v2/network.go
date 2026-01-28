@@ -22,7 +22,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/sharedfilesystems/v2/sharenetworks"
 )
 
-func (h *Helper) ListNetworks(opts networks.ListOpts) ([]networks.Network, error) {
+func (h *Helper) ListNetworks(opts networks.ListOptsBuilder) ([]networks.Network, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 
@@ -56,6 +56,12 @@ func (h *Helper) GetNetworkByName(opts networks.ListOpts) (*networks.Network, er
 	return nil, fmt.Errorf("network %s not found", opts.Name)
 }
 
+func (h *Helper) GetNetwork(id string) (*networks.Network, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return networks.Get(ctx, h.Network, id).Extract()
+}
+
 func (h *Helper) CreateNetwork(opts networks.CreateOpts) (*networks.Network, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -86,6 +92,12 @@ func (h *Helper) DeleteSubnet(id string) error {
 	return subnets.Delete(ctx, h.Network, id).Err
 }
 
+func (h *Helper) GetRouter(id string) (*routers.Router, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return routers.Get(ctx, h.Network, id).Extract()
+}
+
 func (h *Helper) ListRouters(opts routers.ListOpts) ([]routers.Router, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -98,13 +110,24 @@ func (h *Helper) ListRouters(opts routers.ListOpts) ([]routers.Router, error) {
 	return routers.ExtractRouters(pages)
 }
 
+func (h *Helper) RemoveRouterInterface(routerId string, opts routers.RemoveInterfaceOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return routers.RemoveInterface(
+		ctx,
+		h.Network,
+		routerId,
+		opts,
+	).Err
+}
+
 func (h *Helper) CreateRouter(opts routers.CreateOpts) (*routers.Router, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.Create(ctx, h.Network, opts).Extract()
 }
 
-func (h *Helper) UpdateRouter(id string, opts routers.UpdateOpts) error {
+func (h *Helper) UpdateRouter(id string, opts routers.UpdateOptsBuilder) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.Update(ctx, h.Network, id, opts).Err
@@ -247,6 +270,29 @@ func (h *Helper) GetSubnetByName(opts subnets.ListOpts) (*subnets.Subnet, error)
 	}
 
 	return nil, fmt.Errorf("subnet %s not found", opts.Name)
+}
+
+func (h *Helper) GetSubnetByNetworkID(opts subnets.ListOpts) (*subnets.Subnet, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := subnets.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	subnets, err := subnets.ExtractSubnets(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, subnet := range subnets {
+		if subnet.NetworkID == opts.NetworkID {
+			return &subnet, nil
+		}
+	}
+
+	return nil, fmt.Errorf("subnet in network %s not found", opts.NetworkID)
 }
 
 func (h *Helper) GetSecurityGroupByName(opts groups.ListOpts) (*groups.SecGroup, error) {
