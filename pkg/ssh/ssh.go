@@ -29,6 +29,7 @@ type SessionClient interface {
 
 type SftpClient interface {
 	Create(string) (*sftp.File, error)
+	Open(string) (*sftp.File, error)
 }
 
 type Helper struct {
@@ -132,6 +133,30 @@ func (h *Helper) Copy(srcPath, dstPath string) error {
 	dstFile, err := h.SftpClient.Create(dstPath)
 	if err != nil {
 		log.Errorf("ssh: failed to create destination file %s(%v)", dstPath, err)
+		return err
+	}
+
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		log.Errorf("ssh: failed to copy file from %s to %s:%s(%v)", srcPath, h.Host, dstPath, err)
+		return err
+	}
+
+	return nil
+}
+
+func (h *Helper) CopyFrom(srcPath, dstPath string) error {
+	srcFile, err := h.SftpClient.Open(srcPath)
+	if err != nil {
+		log.Errorf("ssh: failed to open remote source file %s(%v)", srcPath, err)
+		return err
+	}
+
+	defer srcFile.Close()
+	dstFile, err := os.Create(dstPath)
+	if err != nil {
+		log.Errorf("ssh: failed to create local destination file %s(%v)", dstPath, err)
 		return err
 	}
 
