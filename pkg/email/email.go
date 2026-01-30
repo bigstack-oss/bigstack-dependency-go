@@ -33,6 +33,7 @@ func initOptions(opts []Option) *Options {
 
 	return options
 }
+
 func genDefaultOptions() *Options {
 	return &Options{
 		Retry: Retry{

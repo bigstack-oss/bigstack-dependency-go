@@ -26,6 +26,8 @@ type Client interface {
 	CreateClient(context.Context, string, string, gocloak.Client) (string, error)
 	CreateClientProtocolMapper(context.Context, string, string, string, gocloak.ProtocolMapperRepresentation) (string, error)
 	GetClientSecret(ctx context.Context, token, realm, idOfClient string) (*gocloak.CredentialRepresentation, error)
+	CreateUser(context.Context, string, string, gocloak.User) (string, error)
+	SetPassword(context.Context, string, string, string, string, bool) error
 	UpdateUser(context.Context, string, string, gocloak.User) error
 	LogoutUserSession(context.Context, string, string, string) error
 }
@@ -168,6 +170,35 @@ func (h *Helper) GetClientSecret(realm, clientID string) (*gocloak.CredentialRep
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.GetClientSecret(ctx, h.Token, realm, clientID)
+}
+
+func (h *Helper) CreateUser(realm string, user gocloak.User) (string, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.CreateUser(ctx, h.Token, realm, user)
+}
+
+func (h *Helper) GetUser(realm, name string) (*gocloak.User, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	users, err := h.Client.GetUsers(ctx, h.Token, realm, gocloak.GetUsersParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.Username != nil && *user.Username == name {
+			return user, nil
+		}
+	}
+
+	return nil, fmt.Errorf("user %s not found", name)
+}
+
+func (h *Helper) SetPassword(realm, userID, password string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.SetPassword(ctx, h.Token, userID, realm, password, false)
 }
 
 func (h *Helper) UpdateUser(realm string, user gocloak.User) error {
