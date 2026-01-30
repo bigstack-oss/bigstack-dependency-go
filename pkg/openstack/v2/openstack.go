@@ -128,6 +128,87 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	}, nil
 }
 
+// TODO: temporary function to create helper without dns service due to the issue of COS edge deployment
+// have to converge with the NewHelper() later
+func NewGlobalHelperWithoutDnsService(opts ...Option) error {
+	var err error
+	once.Do(func() {
+		helper, err = NewHelperWithoutDnsService(opts...)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func NewHelperWithoutDnsService(opts ...Option) (*Helper, error) {
+	provider, err := newProvider(opts...)
+	if err != nil {
+		log.Errorf("failed to create provider: %s", err.Error())
+		return nil, err
+	}
+
+	identityCli, err := newIdentityCli(provider)
+	if err != nil {
+		log.Errorf("failed to create identity client: %s", err.Error())
+		return nil, err
+	}
+
+	computeCli, err := newComputeCli(provider)
+	if err != nil {
+		log.Errorf("failed to create compute client: %s", err.Error())
+		return nil, err
+	}
+
+	imageCli, err := newImageCli(provider)
+	if err != nil {
+		log.Errorf("failed to create image client: %s", err.Error())
+		return nil, err
+	}
+
+	networkCli, err := newNetworkCli(provider)
+	if err != nil {
+		log.Errorf("failed to create network client: %s", err.Error())
+		return nil, err
+	}
+
+	loadBalancerCli, err := newLoadBalancerCli(provider)
+	if err != nil {
+		log.Errorf("failed to create loadbalancer client: %s", err.Error())
+		return nil, err
+	}
+
+	storageCli, err := newStorageCli(provider)
+	if err != nil {
+		log.Errorf("failed to create storage client: %s", err.Error())
+		return nil, err
+	}
+
+	shareCli, err := newShareCli(provider)
+	if err != nil {
+		log.Errorf("failed to create share client: %s", err.Error())
+		return nil, err
+	}
+
+	objectStoreCli, err := newObjectStoreCli(provider)
+	if err != nil {
+		log.Errorf("failed to create object store client: %s", err.Error())
+		return nil, err
+	}
+
+	return &Helper{
+		Provider:     provider,
+		Identity:     identityCli,
+		Compute:      computeCli,
+		Image:        imageCli,
+		Network:      networkCli,
+		Loadbalancer: loadBalancerCli,
+		Storage:      storageCli,
+		Share:        shareCli,
+		ObjectStore:  objectStoreCli,
+	}, nil
+}
+
 func newProvider(opts ...Option) (*gophercloud.ProviderClient, error) {
 	syncedOpts, err := syncOptions(opts)
 	if err != nil {
