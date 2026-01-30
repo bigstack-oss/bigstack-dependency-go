@@ -34,6 +34,8 @@ type Client interface {
 	GetGroups(ctx context.Context, token string, realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
 	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	DeleteUserFromGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
+	GetRealmRole(ctx context.Context, token string, realm string, roleName string) (*gocloak.Role, error)
+	AddRealmRoleToUser(ctx context.Context, token string, realm string, userID string, roles []gocloak.Role) error
 	LogoutUserSession(context.Context, string, string, string) error
 }
 
@@ -222,6 +224,18 @@ func (h *Helper) AddClientRolesToUser(realm, clientId, userID string, roles []go
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.AddClientRolesToUser(ctx, h.Token, realm, clientId, userID, roles)
+}
+
+func (h *Helper) GetRealmRole(realm, roleName string) (*gocloak.Role, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetRealmRole(ctx, h.Token, realm, roleName)
+}
+
+func (h *Helper) AddRealmRoleToUser(realm, userID string, roles []gocloak.Role) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.AddRealmRoleToUser(ctx, h.Token, realm, userID, roles)
 }
 
 func (h *Helper) GetGroups(realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
