@@ -29,6 +29,11 @@ type Client interface {
 	CreateUser(context.Context, string, string, gocloak.User) (string, error)
 	SetPassword(context.Context, string, string, string, string, bool) error
 	UpdateUser(context.Context, string, string, gocloak.User) error
+	GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error)
+	AddClientRolesToUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
+	GetGroups(ctx context.Context, token string, realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
+	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
+	DeleteUserFromGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	LogoutUserSession(context.Context, string, string, string) error
 }
 
@@ -160,16 +165,16 @@ func (h *Helper) GetClients(realm string, params gocloak.GetClientsParams) ([]*g
 	return h.Client.GetClients(ctx, h.Token, realm, params)
 }
 
-func (h *Helper) CreateClientProtocolMapper(realm, clientID string, opts gocloak.ProtocolMapperRepresentation) (string, error) {
+func (h *Helper) CreateClientProtocolMapper(realm, clientId string, opts gocloak.ProtocolMapperRepresentation) (string, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
-	return h.Client.CreateClientProtocolMapper(ctx, h.Token, realm, clientID, opts)
+	return h.Client.CreateClientProtocolMapper(ctx, h.Token, realm, clientId, opts)
 }
 
-func (h *Helper) GetClientSecret(realm, clientID string) (*gocloak.CredentialRepresentation, error) {
+func (h *Helper) GetClientSecret(realm, clientId string) (*gocloak.CredentialRepresentation, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
-	return h.Client.GetClientSecret(ctx, h.Token, realm, clientID)
+	return h.Client.GetClientSecret(ctx, h.Token, realm, clientId)
 }
 
 func (h *Helper) CreateUser(realm string, user gocloak.User) (string, error) {
@@ -205,4 +210,49 @@ func (h *Helper) UpdateUser(realm string, user gocloak.User) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.UpdateUser(ctx, h.Token, realm, user)
+}
+
+func (h *Helper) GetClientRole(realm, clientId, roleName string) (*gocloak.Role, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetClientRole(ctx, h.Token, realm, clientId, roleName)
+}
+
+func (h *Helper) AddClientRolesToUser(realm, clientId, userID string, roles []gocloak.Role) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.AddClientRolesToUser(ctx, h.Token, realm, clientId, userID, roles)
+}
+
+func (h *Helper) GetGroups(realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetGroups(ctx, h.Token, realm, params)
+}
+
+func (h *Helper) GetGroup(realm, name string) (*gocloak.Group, error) {
+	groups, err := h.GetGroups(realm, gocloak.GetGroupsParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, group := range groups {
+		if group.Name != nil && *group.Name == name {
+			return group, nil
+		}
+	}
+
+	return nil, fmt.Errorf("group %s not found", name)
+}
+
+func (h *Helper) AddUserToGroup(realm, userID, groupID string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.AddUserToGroup(ctx, h.Token, realm, userID, groupID)
+}
+
+func (h *Helper) DeleteUserFromGroup(realm, userID, groupID string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.DeleteUserFromGroup(ctx, h.Token, realm, userID, groupID)
 }
