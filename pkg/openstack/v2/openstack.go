@@ -141,6 +141,7 @@ func NewGlobalHelperWithoutDnsService(opts ...Option) error {
 
 	return nil
 }
+
 func NewHelperWithoutDnsService(opts ...Option) (*Helper, error) {
 	provider, err := newProvider(opts...)
 	if err != nil {

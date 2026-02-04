@@ -11,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/flavorprofiles"
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/flavors"
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/loadbalancers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/attributestags"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/quotas"
@@ -66,6 +67,12 @@ func (h *Helper) CreateNetwork(opts networks.CreateOpts) (*networks.Network, err
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return networks.Create(ctx, h.Network, opts).Extract()
+}
+
+func (h *Helper) AddNetworkTag(id, tag string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return attributestags.Add(ctx, h.Network, "networks", id, tag).Err
 }
 
 func (h *Helper) ListSubnets(opts subnets.ListOpts) ([]subnets.Subnet, error) {
