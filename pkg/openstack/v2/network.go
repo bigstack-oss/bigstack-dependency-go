@@ -169,6 +169,12 @@ func (h *Helper) CreatePort(opts ports.CreateOpts) (*ports.Port, error) {
 	return ports.Create(ctx, h.Network, opts).Extract()
 }
 
+func (h *Helper) UpdatePort(id string, opts ports.UpdateOpts) (*ports.Port, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return ports.Update(ctx, h.Network, id, opts).Extract()
+}
+
 func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -197,6 +203,12 @@ func (h *Helper) UpdateNetworkQuotas(projectId string, opts quotas.UpdateOpts) e
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return quotas.Update(ctx, h.Network, projectId, opts).Err
+}
+
+func (h *Helper) UpdateNetwork(id string, opts networks.UpdateOpts) (*networks.Network, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return networks.Update(ctx, h.Network, id, opts).Extract()
 }
 
 func (h *Helper) GetPortByNetIdAndIp(netId, ip string) (*ports.Port, error) {
