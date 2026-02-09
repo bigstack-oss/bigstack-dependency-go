@@ -41,3 +41,9 @@ func (h *Helper) GetRoleByName(name string) (*roles.Role, error) {
 
 	return nil, fmt.Errorf("role %s not found", name)
 }
+
+func (h *Helper) AssignRoleToUser(roleID string, opts roles.AssignOpts) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return roles.Assign(ctx, h.Identity, roleID, opts).ExtractErr()
+}
