@@ -468,6 +468,23 @@ func (h *Helper) ListFloatingIps(opts floatingips.ListOpts) ([]floatingips.Float
 	return floatingips.ExtractFloatingIPs(pages)
 }
 
+func (h *Helper) CreateFloatingIp(opts floatingips.CreateOpts) (*floatingips.FloatingIP, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return floatingips.Create(ctx, h.Network, opts).Extract()
+}
+
+func (h *Helper) AssociateFloatingIp(floatingIpId string, opts floatingips.UpdateOpts) (*floatingips.FloatingIP, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return floatingips.Update(
+		ctx,
+		h.Network,
+		floatingIpId,
+		opts,
+	).Extract()
+}
+
 func (h *Helper) DisassociateFloatingIp(id string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
