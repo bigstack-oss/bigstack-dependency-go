@@ -468,6 +468,21 @@ func (h *Helper) ListFloatingIps(opts floatingips.ListOpts) ([]floatingips.Float
 	return floatingips.ExtractFloatingIPs(pages)
 }
 
+func (h *Helper) GetFloatingIpByIp(ip string) (*floatingips.FloatingIP, error) {
+	fips, err := h.ListFloatingIps(floatingips.ListOpts{FloatingIP: ip})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fip := range fips {
+		if fip.FloatingIP == ip {
+			return &fip, nil
+		}
+	}
+
+	return nil, fmt.Errorf("floating ip %s not found", ip)
+}
+
 func (h *Helper) CreateFloatingIp(opts floatingips.CreateOpts) (*floatingips.FloatingIP, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
