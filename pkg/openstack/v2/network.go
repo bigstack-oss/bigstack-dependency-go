@@ -6,6 +6,7 @@ import (
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
 	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/attachinterfaces"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
 	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones"
 	"github.com/gophercloud/gophercloud/v2/openstack/loadbalancer/v2/flavorprofiles"
@@ -67,6 +68,37 @@ func (h *Helper) CreateNetwork(opts networks.CreateOpts) (*networks.Network, err
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return networks.Create(ctx, h.Network, opts).Extract()
+}
+
+func (h *Helper) ListAttachedNetworksByServerId(serverId string) ([]attachinterfaces.Interface, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	allPages, err := attachinterfaces.List(h.Compute, serverId).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return attachinterfaces.ExtractInterfaces(allPages)
+}
+
+func (h *Helper) GetAttachedPortByServerIdAndNetworkId(serverId, networkId string) (*attachinterfaces.Interface, error) {
+	interfaces, err := h.ListAttachedNetworksByServerId(serverId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range interfaces {
+		if iface.NetID == networkId {
+			return &iface, nil
+		}
+	}
+
+	return nil, fmt.Errorf(
+		"port attached to server %s in network %s not found",
+		serverId,
+		networkId,
+	)
 }
 
 func (h *Helper) AddNetworkTag(id, tag string) error {
@@ -173,6 +205,28 @@ func (h *Helper) UpdatePort(id string, opts ports.UpdateOpts) (*ports.Port, erro
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return ports.Update(ctx, h.Network, id, opts).Extract()
+}
+
+func (h *Helper) AttachPortToInstance(portId, instanceId string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return attachinterfaces.Create(
+		ctx,
+		h.Compute,
+		instanceId,
+		attachinterfaces.CreateOpts{PortID: portId},
+	).Err
+}
+
+func (h *Helper) DeleteAttachedPortFromInstance(instanceId, portId string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return attachinterfaces.Delete(
+		ctx,
+		h.Compute,
+		instanceId,
+		portId,
+	).Err
 }
 
 func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, error) {
