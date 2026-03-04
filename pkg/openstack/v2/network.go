@@ -253,6 +253,30 @@ func (h *Helper) CreateSecurityGroupRule(opts rules.CreateOpts) (*rules.SecGroup
 	return rules.Create(ctx, h.Network, opts).Extract()
 }
 
+func (h *Helper) ListSecurityGroupRules(opts rules.ListOpts) ([]rules.SecGroupRule, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := rules.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return rules.ExtractRules(pages)
+}
+
+func (h *Helper) DeleteSecurityGroup(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return groups.Delete(ctx, h.Network, id).Err
+}
+
+func (h *Helper) UpdateSecurityGroup(id string, opts groups.UpdateOpts) (*groups.SecGroup, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return groups.Update(ctx, h.Network, id, opts).Extract()
+}
+
 func (h *Helper) UpdateNetworkQuotas(projectId string, opts quotas.UpdateOpts) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
