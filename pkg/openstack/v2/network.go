@@ -247,7 +247,7 @@ func (h *Helper) CreateSecurityGroup(opts groups.CreateOpts) (*groups.SecGroup, 
 	return groups.Create(ctx, h.Network, opts).Extract()
 }
 
-func (h *Helper) CreateSecurityGroupRule(opts rules.CreateOpts) (*rules.SecGroupRule, error) {
+func (h *Helper) CreateSecurityGroupRule(opts rules.CreateOptsBuilder) (*rules.SecGroupRule, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return rules.Create(ctx, h.Network, opts).Extract()
