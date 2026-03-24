@@ -47,6 +47,20 @@ func (h *Helper) GetProject(id string) (*projects.Project, error) {
 	return project, nil
 }
 
+func (h *Helper) GetProjectByName(name string) (*projects.Project, error) {
+	projects, err := h.ListProjects(&projects.ListOpts{Name: name})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, project := range projects {
+		if project.Name == name {
+			return &project, nil
+		}
+	}
+	return nil, fmt.Errorf("project %s not found", name)
+}
+
 func (h *Helper) GetProjectIdByName(name string) (string, error) {
 	projects, err := h.ListProjects(&projects.ListOpts{Name: name})
 	if err != nil {
