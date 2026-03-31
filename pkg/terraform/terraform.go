@@ -6,9 +6,6 @@ import (
 	"sync"
 
 	"github.com/bigstack-oss/bigstack-dependency-go/pkg/wait"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hc-install/product"
-	"github.com/hashicorp/hc-install/releases"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -43,7 +40,7 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	initedOpts := initOptions(opts)
 	h := &Helper{Options: *initedOpts}
 
-	err := h.SetTerraformClient()
+	err := h.SetTerraformClient(h.ExecPath)
 	if err != nil {
 		return nil, err
 	}
@@ -63,19 +60,12 @@ func NewGlobalHelper(opts ...Option) error {
 	return nil
 }
 
-func (h *Helper) SetTerraformClient() error {
-	installer := &releases.ExactVersion{
-		Product: product.Terraform,
-		Version: version.Must(version.NewVersion(h.Options.Version)),
+func (h *Helper) SetTerraformClient(execPath string) error {
+	if execPath == "" {
+		execPath = "/usr/local/bin/terraform"
 	}
 
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(120))
-	defer cancel()
-	execPath, err := installer.Install(ctx)
-	if err != nil {
-		return err
-	}
-
+	var err error
 	h.Client, err = tfexec.NewTerraform(h.Options.WoringDir, execPath)
 	if err != nil {
 		return err

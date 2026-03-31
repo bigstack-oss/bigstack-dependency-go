@@ -9,6 +9,7 @@ type Option func(*Options)
 type Options struct {
 	Version   string
 	WoringDir string
+	ExecPath  string
 }
 
 func Version(version string) Option {
@@ -20,5 +21,11 @@ func Version(version string) Option {
 func WorkingDir(dir string) Option {
 	return func(o *Options) {
 		o.WoringDir = dir
+	}
+}
+
+func ExecPath(path string) Option {
+	return func(o *Options) {
+		o.ExecPath = path
 	}
 }
