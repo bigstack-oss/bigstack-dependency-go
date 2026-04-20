@@ -69,6 +69,7 @@ type ChartValues struct {
 }
 
 type Rke2Cilium struct {
+	MTU    int `json:"mtu,omitempty"`
 	Cilium `json:"cilium,omitempty"`
 }
 
