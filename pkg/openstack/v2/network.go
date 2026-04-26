@@ -22,6 +22,7 @@ import (
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/subnets"
 	"github.com/gophercloud/gophercloud/v2/openstack/sharedfilesystems/v2/sharenetworks"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 )
 
 func (h *Helper) ListNetworks(opts networks.ListOptsBuilder) ([]networks.Network, error) {
@@ -239,6 +240,18 @@ func (h *Helper) ListSecurityGroups(opts groups.ListOpts) ([]groups.SecGroup, er
 	}
 
 	return groups.ExtractGroups(pages)
+}
+
+func (h *Helper) ListSecurityGroupRulesPage(opts rules.ListOpts) (pagination.Page, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := rules.List(h.Network, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return pages, nil
 }
 
 func (h *Helper) CreateSecurityGroup(opts groups.CreateOpts) (*groups.SecGroup, error) {
