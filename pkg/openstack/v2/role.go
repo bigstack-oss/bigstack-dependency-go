@@ -47,3 +47,15 @@ func (h *Helper) AssignRoleToUser(roleID string, opts roles.AssignOpts) error {
 	defer cancel()
 	return roles.Assign(ctx, h.Identity, roleID, opts).ExtractErr()
 }
+
+func (h *Helper) ListRoleAssignments(opts *roles.ListAssignmentsOpts) ([]roles.RoleAssignment, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := roles.ListAssignments(h.Identity, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return roles.ExtractRoleAssignments(pages)
+}
