@@ -29,6 +29,7 @@ type Client interface {
 	CreateUser(context.Context, string, string, gocloak.User) (string, error)
 	SetPassword(context.Context, string, string, string, string, bool) error
 	UpdateUser(context.Context, string, string, gocloak.User) error
+	DeleteUser(context.Context, string, string, string) error
 	GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error)
 	AddClientRolesToUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
 	GetGroups(ctx context.Context, token string, realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
@@ -206,6 +207,12 @@ func (h *Helper) SetPassword(realm, userID, password string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.SetPassword(ctx, h.Token, userID, realm, password, false)
+}
+
+func (h *Helper) DeleteUser(realm, userID string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.DeleteUser(ctx, h.Token, realm, userID)
 }
 
 func (h *Helper) UpdateUser(realm string, user gocloak.User) error {
