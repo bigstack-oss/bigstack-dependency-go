@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	helper *Helper
+	helper HelperI
 	once   sync.Once
 )
 
@@ -38,6 +38,11 @@ type Client interface {
 type Helper struct {
 	Client
 	Options
+}
+
+type HelperI interface {
+	SetClient() error
+	Send(Message) error
 }
 
 // Message is the per-send content. From is part of the Sender (set once at
@@ -71,7 +76,7 @@ func genDefaultOptions() *Options {
 // NewHelper builds a Helper from the Sender options and injects the SMTP client.
 // It returns an error if the connection options are invalid (bad TLS policy,
 // port out of range, ...).
-func NewHelper(opts ...Option) (*Helper, error) {
+func NewHelper(opts ...Option) (HelperI, error) {
 	initedOpts := initOptions(opts)
 	h := &Helper{Options: *initedOpts}
 
@@ -95,7 +100,7 @@ func NewGlobalHelper(opts ...Option) error {
 }
 
 // GetGlobalHelper returns the Helper built by NewGlobalHelper (nil if unset).
-func GetGlobalHelper() *Helper {
+func GetGlobalHelper() HelperI {
 	return helper
 }
 
