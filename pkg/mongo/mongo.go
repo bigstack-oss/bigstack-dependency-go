@@ -19,7 +19,7 @@ import (
 var (
 	CreateRecordIfNotExist = options.Update().SetUpsert(true)
 
-	helper *Helper
+	helper HelperI
 	once   sync.Once
 )
 
@@ -73,6 +73,33 @@ type Helper struct {
 	Options
 }
 
+type HelperI interface {
+	SetMongoClient() error
+	NewDBCli(string) (DBClient, error)
+	NewCollCli(string, string) (CollClient, error)
+	NewTxnCli() (TxnClient, error)
+	NewGridFSCli(string) (GridFSClient, error)
+
+	GetQueryCursor(string, string, bson.M, ...*options.FindOptions) (*mongo.Cursor, error)
+	Get(string, string, bson.M) (*mongo.SingleResult, error)
+	GetCount(string, string, bson.M) (int64, error)
+	Insert(string, string, any) error
+	InsertMany(string, string, []any) error
+	UpdateOne(string, string, any, any, ...*options.UpdateOptions) error
+	UpdateMany(string, string, any, any) error
+	DeleteOne(string, string, any) error
+	DeleteAll(string, string, any) error
+	Aggregate(string, string, any, ...*options.AggregateOptions) (*mongo.Cursor, error)
+	BulkWrite(string, string, []mongo.WriteModel, ...*options.BulkWriteOptions) error
+	UploadFile(string, string, multipart.File, ...*options.UploadOptions) error
+	FindFile(string, any, ...*options.GridFSFindOptions) ([]gridfs.File, error)
+	DownloadFile(string, any) (bytes.Buffer, error)
+	DeleteFile(string, any) error
+	GetAllCollections(string) ([]string, error)
+	CreateExpirationIndex(string, string, bson.D, int32) error
+	Close()
+}
+
 func initOptions(opts []Option) *Options {
 	options := &Options{Auth: Auth{Enable: true}}
 	for _, o := range opts {
@@ -82,7 +109,7 @@ func initOptions(opts []Option) *Options {
 	return options
 }
 
-func NewHelper(opts ...Option) (*Helper, error) {
+func NewHelper(opts ...Option) (HelperI, error) {
 	initedOpts := initOptions(opts)
 	h := &Helper{Options: *initedOpts}
 
@@ -132,7 +159,7 @@ func (h *Helper) SetMongoClient() error {
 	return nil
 }
 
-func GetGlobalHelper() *Helper {
+func GetGlobalHelper() HelperI {
 	return helper
 }
 
