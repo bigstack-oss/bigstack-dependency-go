@@ -49,6 +49,7 @@ type HelperI interface {
 // NewHelper time), so a Message only carries what changes between sends.
 type Message struct {
 	To      []string
+	Cc      []string
 	Subject string
 	Body    string
 }
@@ -165,6 +166,9 @@ func (h *Helper) buildMessage(msg Message) (*mail.Msg, error) {
 	}
 	if err := m.To(msg.To...); err != nil {
 		return nil, fmt.Errorf("email: set recipients %v: %w", msg.To, err)
+	}
+	if err := m.Cc(msg.Cc...); err != nil {
+		return nil, fmt.Errorf("email: set cc %v: %w", msg.Cc, err)
 	}
 	m.Subject(msg.Subject)
 	m.SetBodyString(mail.TypeTextPlain, msg.Body)
