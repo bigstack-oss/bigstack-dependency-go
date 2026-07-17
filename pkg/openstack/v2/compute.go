@@ -156,6 +156,12 @@ func (h *Helper) GetImage(id string) (*images.Image, error) {
 	return images.Get(ctx, h.Image, id).Extract()
 }
 
+func (h *Helper) DeleteImage(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return images.Delete(ctx, h.Image, id).ExtractErr()
+}
+
 func (h *Helper) GetImageByName(name string) (*images.Image, error) {
 	images, err := h.ListImages(images.ListOpts{Name: name})
 	if err != nil {

@@ -24,6 +24,24 @@ func (h *Helper) CreateEc2Credential(userId, projectId, accessKey, secretKey str
 	).Extract()
 }
 
+func (h *Helper) ListEc2Credentials(opts credentials.ListOpts) ([]credentials.Credential, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+
+	pages, err := credentials.List(h.Identity, opts).AllPages(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return credentials.ExtractCredentials(pages)
+}
+
+func (h *Helper) DeleteEc2Credential(id string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return credentials.Delete(ctx, h.Identity, id).ExtractErr()
+}
+
 func (h *Helper) ValidToken(token string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
