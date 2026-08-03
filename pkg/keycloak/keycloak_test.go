@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v13"
@@ -16,10 +17,27 @@ func groupNamed(id, name string) *gocloak.Group {
 	return &gocloak.Group{ID: strPtr(id), Name: strPtr(name)}
 }
 
+func groupAt(id, name, path string) *gocloak.Group {
+	return &gocloak.Group{ID: strPtr(id), Name: strPtr(name), Path: strPtr(path)}
+}
+
 func TestEnsureGroupPath_InvalidPath(t *testing.T) {
-	h := &Helper{Client: keycloakMocks.NewMockClient(t)}
-	_, err := h.EnsureGroupPath("master", "")
-	require.EqualError(t, err, `invalid group path ""`)
+	tests := []struct {
+		name string
+		path string
+	}{
+		{name: "empty path", path: ""},
+		{name: "empty interior segment", path: "cmp//admin"},
+		{name: "multiple empty interior segments", path: "cmp///admin"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Helper{Client: keycloakMocks.NewMockClient(t)}
+			_, err := h.EnsureGroupPath("master", tc.path)
+			require.EqualError(t, err, fmt.Sprintf("invalid group path %q", tc.path))
+		})
+	}
 }
 
 func TestEnsureGroupPath(t *testing.T) {
@@ -37,12 +55,12 @@ func TestEnsureGroupPath(t *testing.T) {
 			path: "cmp",
 			mockSetup: func(client *keycloakMocks.MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
-					Return([]*gocloak.Group{groupNamed("cmp-id", "cmp")}, nil)
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 			},
-			expected: groupNamed("cmp-id", "cmp"),
+			expected: groupAt("cmp-id", "cmp", "/cmp"),
 		},
 		{
-			name: "Should create a single-segment path not found at the top level",
+			name: "Should create a single-segment path not found at the top level, with Path populated",
 			path: "cmp",
 			mockSetup: func(client *keycloakMocks.MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
@@ -50,44 +68,44 @@ func TestEnsureGroupPath(t *testing.T) {
 				client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return("cmp-id", nil)
 			},
-			expected: groupNamed("cmp-id", "cmp"),
+			expected: groupAt("cmp-id", "cmp", "/cmp"),
 		},
 		{
 			name: "Should walk every segment of a multi-segment path that already exists",
 			path: "cmp/PROJ001/admin",
 			mockSetup: func(client *keycloakMocks.MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
-					Return([]*gocloak.Group{groupNamed("cmp-id", "cmp")}, nil)
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
 					Return(&gocloak.Group{
-						ID: strPtr("cmp-id"), Name: strPtr("cmp"),
-						SubGroups: &[]gocloak.Group{*groupNamed("proj-id", "PROJ001")},
+						ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"),
+						SubGroups: &[]gocloak.Group{*groupAt("proj-id", "PROJ001", "/cmp/PROJ001")},
 					}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "proj-id").
 					Return(&gocloak.Group{
-						ID: strPtr("proj-id"), Name: strPtr("PROJ001"),
-						SubGroups: &[]gocloak.Group{*groupNamed("admin-id", "admin")},
+						ID: strPtr("proj-id"), Name: strPtr("PROJ001"), Path: strPtr("/cmp/PROJ001"),
+						SubGroups: &[]gocloak.Group{*groupAt("admin-id", "admin", "/cmp/PROJ001/admin")},
 					}, nil)
 			},
-			expected: groupNamed("admin-id", "admin"),
+			expected: groupAt("admin-id", "admin", "/cmp/PROJ001/admin"),
 		},
 		{
-			name: "Should create only the missing middle segment of a multi-segment path",
+			name: "Should create only the missing middle segment of a multi-segment path, with Path derived from its parent",
 			path: "cmp/PROJ001/admin",
 			mockSetup: func(client *keycloakMocks.MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
-					Return([]*gocloak.Group{groupNamed("cmp-id", "cmp")}, nil)
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
-					Return(&gocloak.Group{ID: strPtr("cmp-id"), Name: strPtr("cmp"), SubGroups: &[]gocloak.Group{}}, nil)
+					Return(&gocloak.Group{ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"), SubGroups: &[]gocloak.Group{}}, nil)
 				client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "cmp-id", mock.Anything).
 					Return("proj-id", nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "proj-id").
 					Return(&gocloak.Group{
-						ID: strPtr("proj-id"), Name: strPtr("PROJ001"),
-						SubGroups: &[]gocloak.Group{*groupNamed("admin-id", "admin")},
+						ID: strPtr("proj-id"), Name: strPtr("PROJ001"), Path: strPtr("/cmp/PROJ001"),
+						SubGroups: &[]gocloak.Group{*groupAt("admin-id", "admin", "/cmp/PROJ001/admin")},
 					}, nil)
 			},
-			expected: groupNamed("admin-id", "admin"),
+			expected: groupAt("admin-id", "admin", "/cmp/PROJ001/admin"),
 		},
 		{
 			name: "Should stop and propagate an error finding the top-level group",
@@ -105,6 +123,19 @@ func TestEnsureGroupPath(t *testing.T) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{}, nil)
 				client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return("", errBoom)
+			},
+			expectedError: errBoom,
+		},
+		{
+			name: "Should stop and propagate an error creating a non-first segment",
+			path: "cmp/PROJ001",
+			mockSetup: func(client *keycloakMocks.MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
+					Return(&gocloak.Group{ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"), SubGroups: &[]gocloak.Group{}}, nil)
+				client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "cmp-id", mock.Anything).
 					Return("", errBoom)
 			},
 			expectedError: errBoom,
@@ -225,7 +256,7 @@ func TestHelperFindChildGroup_Nested(t *testing.T) {
 func TestHelperCreateChildGroup(t *testing.T) {
 	errBoom := errors.New("boom")
 
-	t.Run("Should create a top-level group when parent is nil", func(t *testing.T) {
+	t.Run("Should create a top-level group with Path set to /name", func(t *testing.T) {
 		client := keycloakMocks.NewMockClient(t)
 		client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).Return("new-id", nil)
 
@@ -233,19 +264,18 @@ func TestHelperCreateChildGroup(t *testing.T) {
 		got, err := h.createChildGroup("master", nil, "cmp")
 
 		require.NoError(t, err)
-		require.Equal(t, "new-id", *got.ID)
-		require.Equal(t, "cmp", *got.Name)
+		require.Equal(t, groupAt("new-id", "cmp", "/cmp"), got)
 	})
 
-	t.Run("Should create a child group under the parent", func(t *testing.T) {
+	t.Run("Should create a child group with Path derived from the parent's Path", func(t *testing.T) {
 		client := keycloakMocks.NewMockClient(t)
 		client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "parent-id", mock.Anything).Return("child-id", nil)
 
 		h := &Helper{Client: client}
-		got, err := h.createChildGroup("master", groupNamed("parent-id", "parent"), "admin")
+		got, err := h.createChildGroup("master", groupAt("parent-id", "parent", "/parent"), "admin")
 
 		require.NoError(t, err)
-		require.Equal(t, "child-id", *got.ID)
+		require.Equal(t, groupAt("child-id", "admin", "/parent/admin"), got)
 	})
 
 	t.Run("Should propagate an error creating a top-level group", func(t *testing.T) {
@@ -263,100 +293,63 @@ func TestHelperCreateChildGroup(t *testing.T) {
 		client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "parent-id", mock.Anything).Return("", errBoom)
 
 		h := &Helper{Client: client}
-		_, err := h.createChildGroup("master", groupNamed("parent-id", "parent"), "admin")
+		_, err := h.createChildGroup("master", groupAt("parent-id", "parent", "/parent"), "admin")
 
 		require.ErrorIs(t, err, errBoom)
 	})
 }
 
-func TestCmpProjectRoleFromPath(t *testing.T) {
-	tests := []struct {
-		name     string
-		path     *string
-		expected CmpProjectRole
-		expectOk bool
-	}{
-		{
-			name:     "Should parse a three-segment path",
-			path:     strPtr("/cmp/PROJ001/admin"),
-			expected: CmpProjectRole{Product: "cmp", Project: "PROJ001", Role: "admin"},
-			expectOk: true,
-		},
-		{
-			name:     "Should return not-ok for a nil path",
-			path:     nil,
-			expectOk: false,
-		},
-		{
-			name:     "Should return not-ok for a one-segment path",
-			path:     strPtr("/cmp"),
-			expectOk: false,
-		},
-		{
-			name:     "Should return not-ok for a two-segment path",
-			path:     strPtr("/cmp/PROJ001"),
-			expectOk: false,
-		},
-		{
-			name:     "Should return not-ok for a path with more than three segments",
-			path:     strPtr("/cmp/PROJ001/admin/extra"),
-			expectOk: false,
-		},
-	}
+func TestPaginateGroups(t *testing.T) {
+	t.Run("Should fetch a single page as-is when the caller already set Max", func(t *testing.T) {
+		calls := 0
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+			calls++
+			return []*gocloak.Group{groupNamed("a", "a")}, nil
+		}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, ok := CmpProjectRoleFromPath(tc.path)
+		got, err := paginateGroups(fetch, gocloak.GetGroupsParams{Max: gocloak.IntP(10)})
 
-			require.Equal(t, tc.expectOk, ok)
-			require.Equal(t, tc.expected, got)
-		})
-	}
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+		require.Len(t, got, 1)
+	})
+
+	t.Run("Should keep paging while pages come back full, and stop on a short page", func(t *testing.T) {
+		var seenFirsts []int
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+			seenFirsts = append(seenFirsts, *p.First)
+			if *p.First == 0 {
+				return make([]*gocloak.Group, groupsPageSize), nil
+			}
+			return []*gocloak.Group{groupNamed("last", "last")}, nil
+		}
+
+		got, err := paginateGroups(fetch, gocloak.GetGroupsParams{})
+
+		require.NoError(t, err)
+		require.Equal(t, []int{0, groupsPageSize}, seenFirsts)
+		require.Len(t, got, groupsPageSize+1)
+	})
+
+	t.Run("Should propagate an error from any page", func(t *testing.T) {
+		errBoom := errors.New("boom")
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+			return nil, errBoom
+		}
+
+		_, err := paginateGroups(fetch, gocloak.GetGroupsParams{})
+
+		require.ErrorIs(t, err, errBoom)
+	})
 }
 
-func TestCmpProjectRolesFromGroups(t *testing.T) {
-	tests := []struct {
-		name     string
-		groups   []*gocloak.Group
-		expected []CmpProjectRole
-	}{
-		{
-			name: "Should parse multiple project/role memberships",
-			groups: []*gocloak.Group{
-				{Path: strPtr("/cmp/PROJ001/admin")},
-				{Path: strPtr("/cmp/PROJ002/member")},
-			},
-			expected: []CmpProjectRole{
-				{Product: "cmp", Project: "PROJ001", Role: "admin"},
-				{Product: "cmp", Project: "PROJ002", Role: "member"},
-			},
-		},
-		{
-			name: "Should skip groups with a nil or non-three-segment path",
-			groups: []*gocloak.Group{
-				{Path: nil},
-				{Path: strPtr("/cmp")},
-				{Path: strPtr("/cmp/PROJ001/admin")},
-			},
-			expected: []CmpProjectRole{{Product: "cmp", Project: "PROJ001", Role: "admin"}},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, CmpProjectRolesFromGroups(tc.groups))
-		})
-	}
-}
-
-func TestGetCmpProjectRoles(t *testing.T) {
+func TestHelperGetUserGroups(t *testing.T) {
 	errBoom := errors.New("boom")
 
 	tests := []struct {
 		name          string
 		groups        []*gocloak.Group
 		fetchError    error
-		expected      []CmpProjectRole
 		expectedError error
 	}{
 		{
@@ -365,9 +358,8 @@ func TestGetCmpProjectRoles(t *testing.T) {
 			expectedError: errBoom,
 		},
 		{
-			name:     "Should delegate parsing to CmpProjectRolesFromGroups on success",
-			groups:   []*gocloak.Group{{Path: strPtr("/cmp/PROJ001/admin")}},
-			expected: []CmpProjectRole{{Product: "cmp", Project: "PROJ001", Role: "admin"}},
+			name:   "Should return the user's groups",
+			groups: []*gocloak.Group{groupNamed("g1", "g1")},
 		},
 	}
 
@@ -378,10 +370,10 @@ func TestGetCmpProjectRoles(t *testing.T) {
 				Return(tc.groups, tc.fetchError)
 
 			h := &Helper{Client: client}
-			got, err := h.GetCmpProjectRoles("master", "user-id")
+			got, err := h.GetUserGroups("master", "user-id")
 
 			require.ErrorIs(t, err, tc.expectedError)
-			require.Equal(t, tc.expected, got)
+			require.Equal(t, tc.groups, got)
 		})
 	}
 }

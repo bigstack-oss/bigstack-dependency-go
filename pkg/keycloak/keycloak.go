@@ -257,25 +257,49 @@ func (h *Helper) AddRealmRoleToUser(realm, userID string, roles []gocloak.Role) 
 	return h.Client.AddRealmRoleToUser(ctx, h.Token, realm, userID, roles)
 }
 
-func (h *Helper) GetGroups(realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	return h.Client.GetGroups(ctx, h.Token, realm, params)
+// Without this, an unset Max silently inherits Keycloak's server-side default
+// page size, truncating a realm/user with more groups than that.
+const groupsPageSize = 100
+
+func paginateGroups(fetch func(gocloak.GetGroupsParams) ([]*gocloak.Group, error), params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+	if params.Max != nil {
+		return fetch(params)
+	}
+
+	var all []*gocloak.Group
+	first := 0
+	for {
+		page := params
+		page.First = gocloak.IntP(first)
+		page.Max = gocloak.IntP(groupsPageSize)
+
+		got, err := fetch(page)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, got...)
+		if len(got) < groupsPageSize {
+			return all, nil
+		}
+		first += groupsPageSize
+	}
 }
 
-func (h *Helper) GetGroup(realm, name string) (*gocloak.Group, error) {
-	groups, err := h.GetGroups(realm, gocloak.GetGroupsParams{})
-	if err != nil {
-		return nil, err
-	}
+func (h *Helper) GetGroups(realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+	return paginateGroups(func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+		defer cancel()
+		return h.Client.GetGroups(ctx, h.Token, realm, p)
+	}, params)
+}
 
-	for _, group := range groups {
-		if group.Name != nil && *group.Name == name {
-			return group, nil
-		}
-	}
-
-	return nil, fmt.Errorf("group %s not found", name)
+func (h *Helper) GetUserGroups(realm, userID string) ([]*gocloak.Group, error) {
+	return paginateGroups(func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+		defer cancel()
+		return h.Client.GetUserGroups(ctx, h.Token, realm, userID, p)
+	}, gocloak.GetGroupsParams{})
 }
 
 func (h *Helper) AddUserToGroup(realm, userID, groupID string) error {
@@ -290,16 +314,12 @@ func (h *Helper) DeleteUserFromGroup(realm, userID, groupID string) error {
 	return h.Client.DeleteUserFromGroup(ctx, h.Token, realm, userID, groupID)
 }
 
-type CmpProjectRole struct {
-	Product string
-	Project string
-	Role    string
-}
-
 func (h *Helper) EnsureGroupPath(realm, path string) (*gocloak.Group, error) {
 	segments := strings.Split(strings.Trim(path, "/"), "/")
-	if len(segments) == 0 || segments[0] == "" {
-		return nil, fmt.Errorf("invalid group path %q", path)
+	for _, s := range segments {
+		if s == "" {
+			return nil, fmt.Errorf("invalid group path %q", path)
+		}
 	}
 
 	var current *gocloak.Group
@@ -335,7 +355,11 @@ func (h *Helper) findChildGroup(realm string, parent *gocloak.Group, name string
 	}
 
 	// GET /groups/{id}/children 405s on 17.0.1-legacy -- children only show up nested under
-	// the parent's own GET response.
+	// the parent's own GET response. This pins the whole helper to that legacy Group
+	// representation: Keycloak 23+ stops populating SubGroups here (subGroupCount + a working
+	// /children endpoint instead), which this gocloak version has no model for, so on such a
+	// server this reads as "no children" and EnsureGroupPath will try to recreate an existing
+	// group (409) instead of finding it.
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	fresh, err := h.Client.GetGroup(ctx, h.Token, realm, *parent.ID)
@@ -360,52 +384,19 @@ func (h *Helper) createChildGroup(realm string, parent *gocloak.Group, name stri
 	group := gocloak.Group{Name: &name}
 	var id string
 	var err error
+	var path string
 	if parent == nil {
 		id, err = h.Client.CreateGroup(ctx, h.Token, realm, group)
+		path = "/" + name
 	} else {
 		id, err = h.Client.CreateChildGroup(ctx, h.Token, realm, *parent.ID, group)
+		path = *parent.Path + "/" + name
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	return &gocloak.Group{ID: &id, Name: &name}, nil
-}
-
-func (h *Helper) GetCmpProjectRoles(realm, userID string) ([]CmpProjectRole, error) {
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	groups, err := h.Client.GetUserGroups(ctx, h.Token, realm, userID, gocloak.GetGroupsParams{})
-	if err != nil {
-		return nil, err
-	}
-
-	return CmpProjectRolesFromGroups(groups), nil
-}
-
-func CmpProjectRolesFromGroups(groups []*gocloak.Group) []CmpProjectRole {
-	var results []CmpProjectRole
-	for _, group := range groups {
-		projectRole, ok := CmpProjectRoleFromPath(group.Path)
-		if !ok {
-			continue
-		}
-		results = append(results, projectRole)
-	}
-
-	return results
-}
-
-func CmpProjectRoleFromPath(path *string) (CmpProjectRole, bool) {
-	if path == nil {
-		return CmpProjectRole{}, false
-	}
-	segments := strings.Split(strings.Trim(*path, "/"), "/")
-	if len(segments) != 3 {
-		return CmpProjectRole{}, false
-	}
-
-	return CmpProjectRole{Product: segments[0], Project: segments[1], Role: segments[2]}, true
+	return &gocloak.Group{ID: &id, Name: &name, Path: &path}, nil
 }
 
 func (h *Helper) HasClientRole(realm, clientID, userID, roleName string) (bool, error) {
