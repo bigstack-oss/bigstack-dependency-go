@@ -1,0 +1,38 @@
+permissions:
+  contents: read
+
+name: Unit test CI check
+
+on:
+  push:
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Setup mockery
+        uses: brokeyourbike/go-mockery-action@v0
+        with:
+          mockery-version: '3.7.1'
+
+      - name: Generate mock
+        run: mockery
+
+      - name: Download go module
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Setup task
+        uses: go-task/setup-task@v2
+
+      - name: Run unit test
+        run: SKIP_MOCKERY=true task unit-test

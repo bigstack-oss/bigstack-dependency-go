@@ -1,0 +1,14 @@
+version: "3"
+
+tasks:
+  generate-mock:
+    status:
+      - test "{{.SKIP_MOCKERY}}" = "true"
+    cmds:
+      - mockery
+
+  unit-test:
+    desc: "Run unit test"
+    deps: [generate-mock]
+    cmds:
+      - go test -gcflags="all=-l" -v -test.fullpath=true -timeout 30s ./...
