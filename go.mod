@@ -21,6 +21,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.9
 	github.com/slack-go/slack v0.16.0
+	github.com/stretchr/testify v1.11.1
 	github.com/wneessen/go-mail v0.7.3
 	go-micro.dev/v5 v5.3.0
 	go.mongodb.org/mongo-driver v1.17.2
@@ -146,6 +147,7 @@ require (
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

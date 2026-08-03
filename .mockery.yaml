@@ -1,0 +1,11 @@
+dir: '{{.InterfaceDir}}/mocks'
+structname: '{{.Mock}}{{.InterfaceName}}'
+pkgname: '{{.SrcPackageName}}'
+filename: '{{.InterfaceName}}.go'
+all: false
+template: testify
+
+packages:
+  github.com/bigstack-oss/bigstack-dependency-go/pkg/keycloak:
+    interfaces:
+      Client:

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/Nerzal/gocloak/v13"
@@ -32,9 +33,20 @@ type Client interface {
 	DeleteUser(context.Context, string, string, string) error
 	GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error)
 	AddClientRolesToUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
+
+	/* Client mirrors methods gocloak.GoCloak already implements -- there's no
+	 * implementation here because gocloak's real client satisfies this interface
+	 * directly (assigned in SetKeycloakClient). This exists purely so mockery can
+	 * generate a mock for tests.
+	 */
 	GetGroups(ctx context.Context, token string, realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
+	GetGroup(ctx context.Context, token string, realm string, groupID string) (*gocloak.Group, error)
+	CreateGroup(ctx context.Context, token string, realm string, group gocloak.Group) (string, error)
+	CreateChildGroup(ctx context.Context, token string, realm string, groupID string, group gocloak.Group) (string, error)
+	GetUserGroups(ctx context.Context, token string, realm string, userID string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
 	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	DeleteUserFromGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
+	GetClientRolesByUserID(ctx context.Context, token string, realm string, idOfClient string, userID string) ([]*gocloak.Role, error)
 	GetRealmRole(ctx context.Context, token string, realm string, roleName string) (*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token string, realm string, userID string, roles []gocloak.Role) error
 	LogoutUserSession(context.Context, string, string, string) error
@@ -276,4 +288,139 @@ func (h *Helper) DeleteUserFromGroup(realm, userID, groupID string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.DeleteUserFromGroup(ctx, h.Token, realm, userID, groupID)
+}
+
+type CmpProjectRole struct {
+	Product string
+	Project string
+	Role    string
+}
+
+func (h *Helper) EnsureGroupPath(realm, path string) (*gocloak.Group, error) {
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) == 0 || segments[0] == "" {
+		return nil, fmt.Errorf("invalid group path %q", path)
+	}
+
+	var current *gocloak.Group
+	for _, name := range segments {
+		child, err := h.findChildGroup(realm, current, name)
+		if err != nil {
+			return nil, err
+		}
+		if child == nil {
+			child, err = h.createChildGroup(realm, current, name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		current = child
+	}
+
+	return current, nil
+}
+
+func (h *Helper) findChildGroup(realm string, parent *gocloak.Group, name string) (*gocloak.Group, error) {
+	if parent == nil {
+		groups, err := h.GetGroups(realm, gocloak.GetGroupsParams{})
+		if err != nil {
+			return nil, err
+		}
+		for _, group := range groups {
+			if group.Name != nil && *group.Name == name {
+				return group, nil
+			}
+		}
+		return nil, nil
+	}
+
+	// GET /groups/{id}/children 405s on 17.0.1-legacy -- children only show up nested under
+	// the parent's own GET response.
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	fresh, err := h.Client.GetGroup(ctx, h.Token, realm, *parent.ID)
+	if err != nil {
+		return nil, err
+	}
+	if fresh.SubGroups == nil {
+		return nil, nil
+	}
+	for _, subGroup := range *fresh.SubGroups {
+		if subGroup.Name != nil && *subGroup.Name == name {
+			return &subGroup, nil
+		}
+	}
+	return nil, nil
+}
+
+func (h *Helper) createChildGroup(realm string, parent *gocloak.Group, name string) (*gocloak.Group, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+
+	group := gocloak.Group{Name: &name}
+	var id string
+	var err error
+	if parent == nil {
+		id, err = h.Client.CreateGroup(ctx, h.Token, realm, group)
+	} else {
+		id, err = h.Client.CreateChildGroup(ctx, h.Token, realm, *parent.ID, group)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &gocloak.Group{ID: &id, Name: &name}, nil
+}
+
+func (h *Helper) GetCmpProjectRoles(realm, userID string) ([]CmpProjectRole, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	groups, err := h.Client.GetUserGroups(ctx, h.Token, realm, userID, gocloak.GetGroupsParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	return CmpProjectRolesFromGroups(groups), nil
+}
+
+func CmpProjectRolesFromGroups(groups []*gocloak.Group) []CmpProjectRole {
+	var results []CmpProjectRole
+	for _, group := range groups {
+		projectRole, ok := CmpProjectRoleFromPath(group.Path)
+		if !ok {
+			continue
+		}
+		results = append(results, projectRole)
+	}
+
+	return results
+}
+
+func CmpProjectRoleFromPath(path *string) (CmpProjectRole, bool) {
+	if path == nil {
+		return CmpProjectRole{}, false
+	}
+	segments := strings.Split(strings.Trim(*path, "/"), "/")
+	if len(segments) != 3 {
+		return CmpProjectRole{}, false
+	}
+
+	return CmpProjectRole{Product: segments[0], Project: segments[1], Role: segments[2]}, true
+}
+
+func (h *Helper) HasClientRole(realm, clientID, userID, roleName string) (bool, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	roles, err := h.Client.GetClientRolesByUserID(ctx, h.Token, realm, clientID, userID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, role := range roles {
+		if role.Name != nil && *role.Name == roleName {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
