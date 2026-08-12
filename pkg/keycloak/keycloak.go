@@ -50,6 +50,7 @@ type Client interface {
 	GetRealmRole(ctx context.Context, token string, realm string, roleName string) (*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token string, realm string, userID string, roles []gocloak.Role) error
 	LogoutUserSession(context.Context, string, string, string) error
+	GetComponent(ctx context.Context, token string, realm string, componentID string) (*gocloak.Component, error)
 }
 
 type Helper struct {
@@ -255,6 +256,12 @@ func (h *Helper) AddRealmRoleToUser(realm, userID string, roles []gocloak.Role) 
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.AddRealmRoleToUser(ctx, h.Token, realm, userID, roles)
+}
+
+func (h *Helper) GetComponent(realm, componentID string) (*gocloak.Component, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetComponent(ctx, h.Token, realm, componentID)
 }
 
 // Without this, an unset Max silently inherits Keycloak's server-side default
