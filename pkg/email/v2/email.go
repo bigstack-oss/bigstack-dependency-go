@@ -1,5 +1,6 @@
-// Package email (v2) sends plaintext SMTP email with tunable transport security
-// and optional authentication. It is a ground-up successor to the origin
+// Package email (v2) sends SMTP email — plaintext or HTML, with inline parts a
+// body references by cid: — with tunable transport security and optional
+// authentication. It is a ground-up successor to the origin
 // pkg/email (which wraps jordan-wright/email + net/smtp); v1 stays in place for
 // existing consumers (cube-cos-api, quota/billing alerts) while new code opts
 // into this package via the .../pkg/email/v2 import path, matching the repo's
@@ -15,7 +16,9 @@
 package email
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +55,25 @@ type Message struct {
 	Cc      []string
 	Subject string
 	Body    string
+	// HTML sends Body as text/html instead of text/plain. An HTML body may
+	// reference an Inline part by its ContentID, e.g. <img src="cid:logo@cmp">.
+	HTML bool
+	// Inlines are parts carried inside the message and referenced from an HTML
+	// Body by ContentID — typically a branding logo. They are related to the
+	// body rather than offered to the reader as separate attachments.
+	Inlines []Inline
+}
+
+// Inline is a part embedded in the message body and referenced from an HTML
+// Body as cid:<ContentID> (RFC 2392).
+type Inline struct {
+	// ContentID is what the body's cid: URL resolves to. It doubles as the
+	// part's file name, matching how the origin pkg/email named inline parts.
+	ContentID string
+	// ContentType is the part's MIME type, e.g. "image/png". Empty lets
+	// go-mail detect it from the content.
+	ContentType string
+	Content     []byte
 }
 
 func initOptions(opts []Option) *Options {
@@ -171,9 +193,36 @@ func (h *Helper) buildMessage(msg Message) (*mail.Msg, error) {
 		return nil, fmt.Errorf("email: set cc %v: %w", msg.Cc, err)
 	}
 	m.Subject(msg.Subject)
-	m.SetBodyString(mail.TypeTextPlain, msg.Body)
+
+	contentType := mail.TypeTextPlain
+	if msg.HTML {
+		contentType = mail.TypeTextHTML
+	}
+	m.SetBodyString(contentType, msg.Body)
+
+	for _, inline := range msg.Inlines {
+		opts := []mail.FileOption{mail.WithFileContentID(bracketContentID(inline.ContentID))}
+		if inline.ContentType != "" {
+			opts = append(opts, mail.WithFileContentType(mail.ContentType(inline.ContentType)))
+		}
+		if err := m.EmbedReader(inline.ContentID, bytes.NewReader(inline.Content), opts...); err != nil {
+			return nil, fmt.Errorf("email: embed inline %q: %w", inline.ContentID, err)
+		}
+	}
 
 	return m, nil
+}
+
+// bracketContentID frames a Content-ID as the addr-spec in angle brackets that
+// RFC 2045 requires and a cid: URL resolves against. Callers pass the bare id
+// their body references (cid:logo@cmp), matching the origin pkg/email, which
+// derived the header from the attachment file name and wrapped it the same way;
+// go-mail writes whatever it is given verbatim, so the wrapping happens here.
+func bracketContentID(id string) string {
+	if strings.HasPrefix(id, "<") && strings.HasSuffix(id, ">") {
+		return id
+	}
+	return "<" + id + ">"
 }
 
 // policy maps the public TLS value onto go-mail's TLSPolicy. An empty value

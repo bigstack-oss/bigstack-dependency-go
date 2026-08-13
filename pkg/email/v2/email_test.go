@@ -2,6 +2,7 @@ package email
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"net"
 	"strings"
@@ -209,4 +210,108 @@ func mustPort(t *testing.T, s string) int {
 		p = p*10 + int(c-'0')
 	}
 	return p
+}
+
+// TestBuildMessageContentType proves Body is plaintext by default and switches
+// to text/html only when Message.HTML is set, so existing plaintext callers
+// (FET's notify mails) are unaffected by the HTML support.
+func TestBuildMessageContentType(t *testing.T) {
+	h := &Helper{Options: Options{Sender: Sender{From: "noreply@bigstack.co"}}}
+
+	cases := []struct {
+		name string
+		html bool
+		want string
+	}{
+		{"plaintext by default", false, "text/plain"},
+		{"html when flagged", true, "text/html"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := h.buildMessage(Message{To: []string{"user@example.com"}, Body: "x", HTML: tc.html})
+			if err != nil {
+				t.Fatalf("buildMessage: %v", err)
+			}
+			var buf bytes.Buffer
+			if _, err := m.WriteTo(&buf); err != nil {
+				t.Fatalf("WriteTo: %v", err)
+			}
+			if !strings.Contains(buf.String(), "Content-Type: "+tc.want) {
+				t.Errorf("expected Content-Type %s, got:\n%s", tc.want, buf.String())
+			}
+		})
+	}
+}
+
+// TestSendHTMLWithInline exercises the real go-mail client end-to-end and
+// proves an Inline part keeps the Content-ID its cid: URL resolves to — the
+// shape the quota-alert and billing mails need (branded HTML + inline logo).
+func TestSendHTMLWithInline(t *testing.T) {
+	s := newFakeSMTP(t)
+	host, portStr, _ := net.SplitHostPort(s.addr)
+
+	h, err := NewHelper(
+		SenderHost(host),
+		SenderPort(mustPort(t, portStr)),
+		SenderFrom("noreply@bigstack.co"),
+		SenderTLS(TLSNone),
+		SenderAuth(false),
+		RetryCount(0),
+	)
+	if err != nil {
+		t.Fatalf("NewHelper: %v", err)
+	}
+
+	err = h.Send(Message{
+		To:      []string{"admin@example.com"},
+		Subject: "Quota Alert: instances in demo",
+		Body:    `<html><body><img src="cid:logo_cmp_light@cmp" /></body></html>`,
+		HTML:    true,
+		Inlines: []Inline{{
+			ContentID:   "logo_cmp_light@cmp",
+			ContentType: "image/png",
+			Content:     []byte("\x89PNG\r\n\x1a\n"),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Send HTML with inline failed: %v", err)
+	}
+
+	payload := <-s.got
+	for _, want := range []string{
+		"Content-Type: text/html",
+		"Content-Type: image/png",
+		"logo_cmp_light@cmp",
+	} {
+		if !strings.Contains(payload, want) {
+			t.Errorf("expected %q in message:\n%s", want, payload)
+		}
+	}
+}
+
+// TestBuildMessageInlineContentIDHeader pins the exact Content-ID header the
+// body's cid: URL must match. jordan-wright/email (the origin package) derived
+// it from the attachment file name; go-mail needs it set explicitly, so this
+// guards the port from silently breaking every inline logo.
+func TestBuildMessageInlineContentIDHeader(t *testing.T) {
+	h := &Helper{Options: Options{Sender: Sender{From: "noreply@bigstack.co"}}}
+
+	m, err := h.buildMessage(Message{
+		To:      []string{"user@example.com"},
+		Body:    `<img src="cid:logo_cmp_light@cmp" />`,
+		HTML:    true,
+		Inlines: []Inline{{ContentID: "logo_cmp_light@cmp", ContentType: "image/png", Content: []byte("png")}},
+	})
+	if err != nil {
+		t.Fatalf("buildMessage: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if _, err := m.WriteTo(&buf); err != nil {
+		t.Fatalf("WriteTo: %v", err)
+	}
+	// Header names are case-insensitive; go-mail emits "Content-Id".
+	if !strings.Contains(strings.ToLower(buf.String()), "content-id: <logo_cmp_light@cmp>") {
+		t.Errorf("inline part is missing Content-ID: <logo_cmp_light@cmp>:\n%s", buf.String())
+	}
 }
