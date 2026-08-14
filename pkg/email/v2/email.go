@@ -225,17 +225,40 @@ func bracketContentID(id string) string {
 	return "<" + id + ">"
 }
 
+// Validate reports whether t is a policy this package understands. An empty
+// value is valid and means TLSMandatory, so a config written before the field
+// existed never silently downgrades.
+//
+// It is exported for callers that persist a policy — a settings API, a config
+// loader — so a typo is rejected when it is saved rather than surfacing later
+// as a failed send. Keeping the check here means the set of valid values is
+// defined once, next to the constants, instead of being restated by every
+// caller that stores one.
+func (t TLS) Validate() error {
+	switch t {
+	case TLSNone, TLSOpportunistic, TLSMandatory, "":
+		return nil
+	default:
+		return fmt.Errorf(
+			"email: invalid TLS policy %q (want %q, %q or %q)",
+			t, TLSNone, TLSOpportunistic, TLSMandatory,
+		)
+	}
+}
+
 // policy maps the public TLS value onto go-mail's TLSPolicy. An empty value
 // defaults to TLSMandatory so an unset config never silently downgrades.
 func (t TLS) policy() (mail.TLSPolicy, error) {
+	if err := t.Validate(); err != nil {
+		return 0, err
+	}
+
 	switch t {
 	case TLSNone:
 		return mail.NoTLS, nil
 	case TLSOpportunistic:
 		return mail.TLSOpportunistic, nil
-	case TLSMandatory, "":
-		return mail.TLSMandatory, nil
 	default:
-		return 0, fmt.Errorf("email: invalid TLS policy %q (want none|opportunistic|mandatory)", t)
+		return mail.TLSMandatory, nil
 	}
 }

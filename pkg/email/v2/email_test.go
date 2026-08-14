@@ -110,6 +110,24 @@ func TestNewHelperInvalidTLS(t *testing.T) {
 	}
 }
 
+// TestTLSValidate pins the exported check callers use to reject a bad policy at
+// write time. Empty must stay valid — it is how a config written before the
+// field existed asks for the default — so this also guards against a future
+// tightening that would break stored configs.
+func TestTLSValidate(t *testing.T) {
+	for _, in := range []TLS{TLSNone, TLSOpportunistic, TLSMandatory, ""} {
+		if err := in.Validate(); err != nil {
+			t.Errorf("Validate(%q): unexpected error %v", in, err)
+		}
+	}
+
+	for _, in := range []TLS{"starttls", "None", "MANDATORY", "true"} {
+		if err := in.Validate(); err == nil {
+			t.Errorf("Validate(%q): expected an error, got nil", in)
+		}
+	}
+}
+
 func TestTLSPolicyMapping(t *testing.T) {
 	cases := map[TLS]bool{
 		TLSNone:          true,
