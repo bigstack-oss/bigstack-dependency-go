@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v13"
-	keycloakMocks "github.com/bigstack-oss/bigstack-dependency-go/pkg/keycloak/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +32,7 @@ func TestEnsureGroupPath_InvalidPath(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := &Helper{Client: keycloakMocks.NewMockClient(t)}
+			h := &Helper{Client: NewMockClient(t)}
 			_, err := h.EnsureGroupPath("master", tc.path)
 			require.EqualError(t, err, fmt.Sprintf("invalid group path %q", tc.path))
 		})
@@ -46,14 +45,14 @@ func TestEnsureGroupPath(t *testing.T) {
 	tests := []struct {
 		name          string
 		path          string
-		mockSetup     func(client *keycloakMocks.MockClient)
+		mockSetup     func(client *MockClient)
 		expected      *gocloak.Group
 		expectedError error
 	}{
 		{
 			name: "Should return the existing group for a single-segment path found at the top level",
 			path: "cmp",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 			},
@@ -62,7 +61,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should create a single-segment path not found at the top level, with Path populated",
 			path: "cmp",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{}, nil)
 				client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).
@@ -73,7 +72,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should walk every segment of a multi-segment path that already exists",
 			path: "cmp/PROJ001/admin",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
@@ -92,7 +91,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should create only the missing middle segment of a multi-segment path, with Path derived from its parent",
 			path: "cmp/PROJ001/admin",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
@@ -110,7 +109,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should stop and propagate an error finding the top-level group",
 			path: "cmp",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return(nil, errBoom)
 			},
@@ -119,7 +118,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should stop and propagate an error creating the top-level group",
 			path: "cmp",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{}, nil)
 				client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).
@@ -130,7 +129,7 @@ func TestEnsureGroupPath(t *testing.T) {
 		{
 			name: "Should stop and propagate an error creating a non-first segment",
 			path: "cmp/PROJ001",
-			mockSetup: func(client *keycloakMocks.MockClient) {
+			mockSetup: func(client *MockClient) {
 				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
 					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
 				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
@@ -144,7 +143,7 @@ func TestEnsureGroupPath(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			client := keycloakMocks.NewMockClient(t)
+			client := NewMockClient(t)
 			tc.mockSetup(client)
 			h := &Helper{Client: client}
 
@@ -176,7 +175,7 @@ func TestHelperFindChildGroup_TopLevel(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			client := keycloakMocks.NewMockClient(t)
+			client := NewMockClient(t)
 			client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).Return(tc.groups, nil)
 
 			h := &Helper{Client: client}
@@ -190,7 +189,7 @@ func TestHelperFindChildGroup_TopLevel(t *testing.T) {
 
 func TestHelperFindChildGroup_TopLevel_Error(t *testing.T) {
 	errBoom := errors.New("boom")
-	client := keycloakMocks.NewMockClient(t)
+	client := NewMockClient(t)
 	client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).Return(nil, errBoom)
 
 	h := &Helper{Client: client}
@@ -240,7 +239,7 @@ func TestHelperFindChildGroup_Nested(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			client := keycloakMocks.NewMockClient(t)
+			client := NewMockClient(t)
 			client.On("GetGroup", mock.Anything, mock.Anything, "master", "parent-id").
 				Return(tc.parentGroup, tc.fetchErr)
 
@@ -257,7 +256,7 @@ func TestHelperCreateChildGroup(t *testing.T) {
 	errBoom := errors.New("boom")
 
 	t.Run("Should create a top-level group with Path set to /name", func(t *testing.T) {
-		client := keycloakMocks.NewMockClient(t)
+		client := NewMockClient(t)
 		client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).Return("new-id", nil)
 
 		h := &Helper{Client: client}
@@ -268,7 +267,7 @@ func TestHelperCreateChildGroup(t *testing.T) {
 	})
 
 	t.Run("Should create a child group with Path derived from the parent's Path", func(t *testing.T) {
-		client := keycloakMocks.NewMockClient(t)
+		client := NewMockClient(t)
 		client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "parent-id", mock.Anything).Return("child-id", nil)
 
 		h := &Helper{Client: client}
@@ -279,7 +278,7 @@ func TestHelperCreateChildGroup(t *testing.T) {
 	})
 
 	t.Run("Should propagate an error creating a top-level group", func(t *testing.T) {
-		client := keycloakMocks.NewMockClient(t)
+		client := NewMockClient(t)
 		client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).Return("", errBoom)
 
 		h := &Helper{Client: client}
@@ -289,7 +288,7 @@ func TestHelperCreateChildGroup(t *testing.T) {
 	})
 
 	t.Run("Should propagate an error creating a child group", func(t *testing.T) {
-		client := keycloakMocks.NewMockClient(t)
+		client := NewMockClient(t)
 		client.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "parent-id", mock.Anything).Return("", errBoom)
 
 		h := &Helper{Client: client}
@@ -365,7 +364,7 @@ func TestHelperGetUserGroups(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			client := keycloakMocks.NewMockClient(t)
+			client := NewMockClient(t)
 			client.On("GetUserGroups", mock.Anything, mock.Anything, "master", "user-id", mock.Anything).
 				Return(tc.groups, tc.fetchError)
 
@@ -415,7 +414,7 @@ func TestHasClientRole(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			client := keycloakMocks.NewMockClient(t)
+			client := NewMockClient(t)
 			client.On("GetClientRolesByUserID", mock.Anything, mock.Anything, "master", "client-id", "user-id").
 				Return(tc.roles, tc.fetchError)
 

@@ -1,7 +1,13 @@
-dir: '{{.InterfaceDir}}/mocks'
+# Mocks are generated into the package under test as _test.go files, not into
+# an importable mocks/ package. This module is consumed as a library, so a mock
+# in its own package would have to be published for a downstream `go mod
+# download` to resolve the dependency's test imports -- and it is generated
+# code, which does not belong in the published surface. As a _test.go file it
+# is never built by consumers and never needs publishing.
+dir: '{{.InterfaceDir}}'
 structname: '{{.Mock}}{{.InterfaceName}}'
 pkgname: '{{.SrcPackageName}}'
-filename: '{{.InterfaceName}}.go'
+filename: 'mock_{{.InterfaceName}}_test.go'
 all: false
 template: testify
 
