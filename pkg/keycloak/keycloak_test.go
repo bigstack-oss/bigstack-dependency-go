@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -375,6 +376,81 @@ func TestHelperGetUserGroups(t *testing.T) {
 			require.Equal(t, tc.groups, got)
 		})
 	}
+}
+
+func TestHelperLoginUser(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name                  string
+		client                ClientCredentials
+		tlsInsecureSkipVerify bool
+		token                 *gocloak.JWT
+		loginError            error
+		expected              *gocloak.JWT
+		expectedError         error
+	}{
+		{
+			name:                  "Should return the JWT on a successful login with the default admin client",
+			client:                DefaultAdmin,
+			tlsInsecureSkipVerify: false,
+			token:                 &gocloak.JWT{AccessToken: "access-token"},
+			loginError:            nil,
+			expected:              &gocloak.JWT{AccessToken: "access-token"},
+			expectedError:         nil,
+		},
+		{
+			name:                  "Should authenticate against a caller-supplied client instead of the default",
+			client:                ClientCredentials{ID: "custom-client", Secret: "custom-secret"},
+			tlsInsecureSkipVerify: false,
+			token:                 &gocloak.JWT{AccessToken: "access-token"},
+			loginError:            nil,
+			expected:              &gocloak.JWT{AccessToken: "access-token"},
+			expectedError:         nil,
+		},
+		{
+			name:                  "Should set an insecure TLS config before logging in when configured",
+			client:                DefaultAdmin,
+			tlsInsecureSkipVerify: true,
+			token:                 &gocloak.JWT{AccessToken: "access-token"},
+			loginError:            nil,
+			expected:              &gocloak.JWT{AccessToken: "access-token"},
+			expectedError:         nil,
+		},
+		{
+			name:                  "Should propagate an error when the login fails",
+			client:                DefaultAdmin,
+			tlsInsecureSkipVerify: false,
+			token:                 nil,
+			loginError:            errBoom,
+			expected:              nil,
+			expectedError:         errBoom,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			if tc.tlsInsecureSkipVerify {
+				client.On("RestyClient").Return(resty.New())
+			}
+			client.On("Login", mock.Anything, tc.client.ID, tc.client.Secret, "master", "user", "pass").
+				Return(tc.token, tc.loginError)
+
+			h := &Helper{
+				Client:  client,
+				Options: Options{Auth: Auth{Realm: "master"}, Host: Host{TlsInsecureSkipVerify: tc.tlsInsecureSkipVerify}},
+			}
+			got, err := h.LoginUser("user", "pass", tc.client)
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestDefaultAdmin(t *testing.T) {
+	require.Equal(t, ClientCredentials{ID: "admin-cli", Secret: ""}, DefaultAdmin)
 }
 
 func TestHasClientRole(t *testing.T) {

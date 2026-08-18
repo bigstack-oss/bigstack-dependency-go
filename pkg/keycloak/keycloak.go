@@ -194,6 +194,44 @@ func (h *Helper) LoginServiceAccount() error {
 	)
 }
 
+type ClientCredentials struct {
+	ID     string
+	Secret string
+}
+
+/*
+ * DefaultAdmin is the public "admin-cli" client Keycloak provisions in every
+ * realm by default, with direct access grants already enabled -- the same
+ * client gocloak's own LoginAdmin uses internally for its hardcoded admin
+ * login. Pass this to LoginUser unless the target realm needs a different
+ * client.
+ */
+var DefaultAdmin = ClientCredentials{ID: "admin-cli"}
+
+func (h *Helper) LoginUser(username, password string, client ClientCredentials) (*gocloak.JWT, error) {
+	if h.Options.TlsInsecureSkipVerify {
+		h.Client.RestyClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	token, err := h.Client.Login(
+		ctx,
+		client.ID,
+		client.Secret,
+		h.Options.Realm,
+		username,
+		password,
+	)
+	if err != nil {
+		// %w (not LoginAdmin's %s) so callers can errors.As into gocloak's *APIError
+		// to tell an invalid-credentials response apart from an unexpected failure.
+		return nil, fmt.Errorf("keycloak login failed: %w", err)
+	}
+
+	return token, nil
+}
+
 func (h *Helper) LogoutUserSession(realm, sessionID string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
