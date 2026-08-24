@@ -22,6 +22,7 @@ type Client interface {
 	RestyClient() *resty.Client
 	Login(context.Context, string, string, string, string, string) (*gocloak.JWT, error)
 	LoginAdmin(context.Context, string, string, string) (*gocloak.JWT, error)
+	LoginClient(ctx context.Context, clientID, clientSecret, realm string, scopes ...string) (*gocloak.JWT, error)
 	GetUsers(context.Context, string, string, gocloak.GetUsersParams) ([]*gocloak.User, error)
 	GetClients(context.Context, string, string, gocloak.GetClientsParams) ([]*gocloak.Client, error)
 	CreateClient(context.Context, string, string, gocloak.Client) (string, error)
@@ -114,12 +115,10 @@ func (h *Helper) SetKeycloakClient() error {
 		return fmt.Errorf("keycloak path is empty")
 	}
 
-	if h.Options.Username == "" {
-		return fmt.Errorf("keycloak username is empty")
-	}
-
-	if h.Options.Password == "" {
-		return fmt.Errorf("keycloak password is empty")
+	hasUserCreds := h.Options.Username != "" && h.Options.Password != ""
+	hasServiceAccountCreds := h.Options.ClientID != "" && h.Options.ClientSecret != ""
+	if !hasUserCreds && !hasServiceAccountCreds {
+		return fmt.Errorf("keycloak credentials are empty: need either username/password or clientId/clientSecret")
 	}
 
 	if h.Options.Realm == "" {
@@ -159,6 +158,37 @@ func (h *Helper) LoginAdmin() error {
 
 	return fmt.Errorf(
 		"keycloak login failed: %s",
+		err.Error(),
+	)
+}
+
+/*
+ * LoginServiceAccount authenticates as a confidential client's service account
+ * (client_credentials grant) instead of a human admin's username/password.
+ * Unlike LoginAdmin, this has no separate expiry to manage beyond the resulting
+ * access token itself: the client secret backing it doesn't expire on its own,
+ * so a fresh token is always a re-login away.
+ */
+func (h *Helper) LoginServiceAccount() error {
+	if h.Options.TlsInsecureSkipVerify {
+		h.Client.RestyClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxMinutes(2))
+	defer cancel()
+	token, err := h.Client.LoginClient(
+		ctx,
+		h.Options.ClientID,
+		h.Options.ClientSecret,
+		h.Options.Realm,
+	)
+	if err == nil {
+		h.Token = token.AccessToken
+		return nil
+	}
+
+	return fmt.Errorf(
+		"keycloak service account login failed: %s",
 		err.Error(),
 	)
 }

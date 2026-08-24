@@ -426,3 +426,125 @@ func TestHasClientRole(t *testing.T) {
 		})
 	}
 }
+
+func TestLoginServiceAccount(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		token         *gocloak.JWT
+		loginError    error
+		expectedToken string
+		expectedError string
+	}{
+		{
+			name:          "Should set the Helper's Token from the returned JWT on success",
+			token:         &gocloak.JWT{AccessToken: "fresh-token"},
+			expectedToken: "fresh-token",
+		},
+		{
+			name:          "Should return a wrapped error and leave Token unset if the login fails",
+			loginError:    errBoom,
+			expectedToken: "",
+			expectedError: "keycloak service account login failed: boom",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("LoginClient", mock.Anything, "cmp-migration-sa", "sa-secret", "master").
+				Return(tc.token, tc.loginError)
+
+			h := &Helper{
+				Client: client,
+				Options: Options{
+					Auth: Auth{
+						Realm:        "master",
+						ClientID:     "cmp-migration-sa",
+						ClientSecret: "sa-secret",
+					},
+				},
+			}
+			err := h.LoginServiceAccount()
+
+			if tc.expectedError == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedError)
+			}
+			require.Equal(t, tc.expectedToken, h.Token)
+		})
+	}
+}
+
+func TestSetKeycloakClient(t *testing.T) {
+	tests := []struct {
+		name          string
+		options       Options
+		expectedError string
+	}{
+		{
+			name:          "Should return an error if scheme is empty",
+			options:       Options{Host: Host{Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", Username: "admin", Password: "admin"}},
+			expectedError: "keycloak scheme is empty",
+		},
+		{
+			name:          "Should return an error if ip is empty",
+			options:       Options{Host: Host{Scheme: "http", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", Username: "admin", Password: "admin"}},
+			expectedError: "keycloak ip is empty",
+		},
+		{
+			name:          "Should return an error if port is empty",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Path: "auth"}, Auth: Auth{Realm: "master", Username: "admin", Password: "admin"}},
+			expectedError: "keycloak port is empty",
+		},
+		{
+			name:          "Should return an error if path is empty",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80}, Auth: Auth{Realm: "master", Username: "admin", Password: "admin"}},
+			expectedError: "keycloak path is empty",
+		},
+		{
+			name:          "Should return an error if neither username/password nor clientId/clientSecret is set",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master"}},
+			expectedError: "keycloak credentials are empty: need either username/password or clientId/clientSecret",
+		},
+		{
+			name:          "Should return an error if only username is set, without a password",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", Username: "admin"}},
+			expectedError: "keycloak credentials are empty: need either username/password or clientId/clientSecret",
+		},
+		{
+			name:          "Should return an error if only clientId is set, without a clientSecret",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", ClientID: "cmp-migration-sa"}},
+			expectedError: "keycloak credentials are empty: need either username/password or clientId/clientSecret",
+		},
+		{
+			name:          "Should return an error if realm is empty",
+			options:       Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Username: "admin", Password: "admin"}},
+			expectedError: "keycloak realm is empty",
+		},
+		{
+			name:    "Should succeed with username/password credentials",
+			options: Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", Username: "admin", Password: "admin"}},
+		},
+		{
+			name:    "Should succeed with clientId/clientSecret credentials, without any username/password set",
+			options: Options{Host: Host{Scheme: "http", Ip: "keycloak", Port: 80, Path: "auth"}, Auth: Auth{Realm: "master", ClientID: "cmp-migration-sa", ClientSecret: "sa-secret"}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := &Helper{Options: tc.options}
+			err := h.SetKeycloakClient()
+
+			if tc.expectedError == "" {
+				require.NoError(t, err)
+				require.NotNil(t, h.Client)
+			} else {
+				require.EqualError(t, err, tc.expectedError)
+			}
+		})
+	}
+}

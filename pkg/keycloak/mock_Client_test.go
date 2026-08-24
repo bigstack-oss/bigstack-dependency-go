@@ -1806,6 +1806,101 @@ func (_c *MockClient_LoginAdmin_Call) RunAndReturn(run func(context1 context.Con
 	return _c
 }
 
+// LoginClient provides a mock function for the type MockClient
+func (_mock *MockClient) LoginClient(ctx context.Context, clientID string, clientSecret string, realm string, scopes ...string) (*gocloak.JWT, error) {
+	var tmpRet mock.Arguments
+	if len(scopes) > 0 {
+		tmpRet = _mock.Called(ctx, clientID, clientSecret, realm, scopes)
+	} else {
+		tmpRet = _mock.Called(ctx, clientID, clientSecret, realm)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoginClient")
+	}
+
+	var r0 *gocloak.JWT
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, ...string) (*gocloak.JWT, error)); ok {
+		return returnFunc(ctx, clientID, clientSecret, realm, scopes...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, ...string) *gocloak.JWT); ok {
+		r0 = returnFunc(ctx, clientID, clientSecret, realm, scopes...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.JWT)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, ...string) error); ok {
+		r1 = returnFunc(ctx, clientID, clientSecret, realm, scopes...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_LoginClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginClient'
+type MockClient_LoginClient_Call struct {
+	*mock.Call
+}
+
+// LoginClient is a helper method to define mock.On call
+//   - ctx context.Context
+//   - clientID string
+//   - clientSecret string
+//   - realm string
+//   - scopes ...string
+func (_e *MockClient_Expecter) LoginClient(ctx any, clientID any, clientSecret any, realm any, scopes ...any) *MockClient_LoginClient_Call {
+	return &MockClient_LoginClient_Call{Call: _e.mock.On("LoginClient",
+		append([]any{ctx, clientID, clientSecret, realm}, scopes...)...)}
+}
+
+func (_c *MockClient_LoginClient_Call) Run(run func(ctx context.Context, clientID string, clientSecret string, realm string, scopes ...string)) *MockClient_LoginClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []string
+		var variadicArgs []string
+		if len(args) > 4 {
+			variadicArgs = args[4].([]string)
+		}
+		arg4 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_LoginClient_Call) Return(jWT *gocloak.JWT, err error) *MockClient_LoginClient_Call {
+	_c.Call.Return(jWT, err)
+	return _c
+}
+
+func (_c *MockClient_LoginClient_Call) RunAndReturn(run func(ctx context.Context, clientID string, clientSecret string, realm string, scopes ...string) (*gocloak.JWT, error)) *MockClient_LoginClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LogoutUserSession provides a mock function for the type MockClient
 func (_mock *MockClient) LogoutUserSession(context1 context.Context, s string, s1 string, s2 string) error {
 	ret := _mock.Called(context1, s, s1, s2)

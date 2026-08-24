@@ -19,6 +19,11 @@ type Auth struct {
 	Realm    string `json:"realm" yaml:"realm"`
 	Username string `json:"username" yaml:"username"`
 	Password string `json:"password" yaml:"password"`
+
+	// ClientID/ClientSecret authenticate as a confidential client's service
+	// account (client_credentials grant) instead of Username/Password.
+	ClientID     string `json:"clientId" yaml:"clientId"`
+	ClientSecret string `json:"clientSecret" yaml:"clientSecret"`
 }
 
 func Scheme(scheme string) Option {
@@ -66,5 +71,17 @@ func Password(password string) Option {
 func Realm(realm string) Option {
 	return func(o *Options) {
 		o.Auth.Realm = realm
+	}
+}
+
+func ClientID(clientID string) Option {
+	return func(o *Options) {
+		o.Auth.ClientID = clientID
+	}
+}
+
+func ClientSecret(clientSecret string) Option {
+	return func(o *Options) {
+		o.Auth.ClientSecret = clientSecret
 	}
 }
