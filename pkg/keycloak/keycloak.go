@@ -351,7 +351,7 @@ func (h *Helper) DeleteUserFromGroup(realm, userID, groupID string) error {
 	return h.Client.DeleteUserFromGroup(ctx, h.Token, realm, userID, groupID)
 }
 
-func (h *Helper) EnsureGroupPath(realm, path string) (*gocloak.Group, error) {
+func (h *Helper) GetOrCreateGroupPath(realm, path string) (*gocloak.Group, error) {
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	for _, s := range segments {
 		if s == "" {
@@ -395,7 +395,7 @@ func (h *Helper) findChildGroup(realm string, parent *gocloak.Group, name string
 	// the parent's own GET response. This pins the whole helper to that legacy Group
 	// representation: Keycloak 23+ stops populating SubGroups here (subGroupCount + a working
 	// /children endpoint instead), which this gocloak version has no model for, so on such a
-	// server this reads as "no children" and EnsureGroupPath will try to recreate an existing
+	// server this reads as "no children" and GetOrCreateGroupPath will try to recreate an existing
 	// group (409) instead of finding it.
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()

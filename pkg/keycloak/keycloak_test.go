@@ -20,7 +20,7 @@ func groupAt(id, name, path string) *gocloak.Group {
 	return &gocloak.Group{ID: strPtr(id), Name: strPtr(name), Path: strPtr(path)}
 }
 
-func TestEnsureGroupPath_InvalidPath(t *testing.T) {
+func TestGetOrCreateGroupPath_InvalidPath(t *testing.T) {
 	tests := []struct {
 		name string
 		path string
@@ -33,13 +33,13 @@ func TestEnsureGroupPath_InvalidPath(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			h := &Helper{Client: NewMockClient(t)}
-			_, err := h.EnsureGroupPath("master", tc.path)
+			_, err := h.GetOrCreateGroupPath("master", tc.path)
 			require.EqualError(t, err, fmt.Sprintf("invalid group path %q", tc.path))
 		})
 	}
 }
 
-func TestEnsureGroupPath(t *testing.T) {
+func TestGetOrCreateGroupPath(t *testing.T) {
 	errBoom := errors.New("boom")
 
 	tests := []struct {
@@ -147,7 +147,7 @@ func TestEnsureGroupPath(t *testing.T) {
 			tc.mockSetup(client)
 			h := &Helper{Client: client}
 
-			got, err := h.EnsureGroupPath("master", tc.path)
+			got, err := h.GetOrCreateGroupPath("master", tc.path)
 
 			require.ErrorIs(t, err, tc.expectedError)
 			require.Equal(t, tc.expected, got)
