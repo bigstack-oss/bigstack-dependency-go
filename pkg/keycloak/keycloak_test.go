@@ -378,7 +378,7 @@ func TestHelperGetUserGroups(t *testing.T) {
 	}
 }
 
-func TestHelperLoginUser(t *testing.T) {
+func TestHelperCheckLoginUser(t *testing.T) {
 	errBoom := errors.New("boom")
 
 	tests := []struct {
@@ -441,7 +441,7 @@ func TestHelperLoginUser(t *testing.T) {
 				Client:  client,
 				Options: Options{Auth: Auth{Realm: "master"}, Host: Host{TlsInsecureSkipVerify: tc.tlsInsecureSkipVerify}},
 			}
-			got, err := h.LoginUser("user", "pass", tc.client)
+			got, err := h.CheckLoginUser("user", "pass", tc.client)
 
 			require.ErrorIs(t, err, tc.expectedError)
 			require.Equal(t, tc.expected, got)

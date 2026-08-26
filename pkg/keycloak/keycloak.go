@@ -203,12 +203,12 @@ type ClientCredentials struct {
  * DefaultAdmin is the public "admin-cli" client Keycloak provisions in every
  * realm by default, with direct access grants already enabled -- the same
  * client gocloak's own LoginAdmin uses internally for its hardcoded admin
- * login. Pass this to LoginUser unless the target realm needs a different
- * client.
+ * login. Pass this to CheckLoginUser unless the target realm needs a
+ * different client.
  */
 var DefaultAdmin = ClientCredentials{ID: "admin-cli"}
 
-func (h *Helper) LoginUser(username, password string, client ClientCredentials) (*gocloak.JWT, error) {
+func (h *Helper) CheckLoginUser(username, password string, client ClientCredentials) (*gocloak.JWT, error) {
 	if h.Options.TlsInsecureSkipVerify {
 		h.Client.RestyClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	}
