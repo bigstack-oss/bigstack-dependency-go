@@ -34,6 +34,7 @@ type Client interface {
 	DeleteUser(context.Context, string, string, string) error
 	GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error)
 	AddClientRolesToUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
+	DeleteClientRolesFromUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
 
 	/* Client mirrors methods gocloak.GoCloak already implements -- there's no
 	 * implementation here because gocloak's real client satisfies this interface
@@ -274,6 +275,12 @@ func (h *Helper) AddClientRolesToUser(realm, clientId, userID string, roles []go
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.AddClientRolesToUser(ctx, h.Token, realm, clientId, userID, roles)
+}
+
+func (h *Helper) DeleteClientRolesFromUser(realm, clientId, userID string, roles []gocloak.Role) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.DeleteClientRolesFromUser(ctx, h.Token, realm, clientId, userID, roles)
 }
 
 func (h *Helper) GetRealmRole(realm, roleName string) (*gocloak.Role, error) {

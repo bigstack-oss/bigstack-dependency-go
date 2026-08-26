@@ -672,6 +672,87 @@ func (_c *MockClient_CreateUser_Call) RunAndReturn(run func(context1 context.Con
 	return _c
 }
 
+// DeleteClientRolesFromUser provides a mock function for the type MockClient
+func (_mock *MockClient) DeleteClientRolesFromUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error {
+	ret := _mock.Called(ctx, token, realm, idOfClient, userID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientRolesFromUser")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, []gocloak.Role) error); ok {
+		r0 = returnFunc(ctx, token, realm, idOfClient, userID, roles)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_DeleteClientRolesFromUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientRolesFromUser'
+type MockClient_DeleteClientRolesFromUser_Call struct {
+	*mock.Call
+}
+
+// DeleteClientRolesFromUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - userID string
+//   - roles []gocloak.Role
+func (_e *MockClient_Expecter) DeleteClientRolesFromUser(ctx any, token any, realm any, idOfClient any, userID any, roles any) *MockClient_DeleteClientRolesFromUser_Call {
+	return &MockClient_DeleteClientRolesFromUser_Call{Call: _e.mock.On("DeleteClientRolesFromUser", ctx, token, realm, idOfClient, userID, roles)}
+}
+
+func (_c *MockClient_DeleteClientRolesFromUser_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role)) *MockClient_DeleteClientRolesFromUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 []gocloak.Role
+		if args[5] != nil {
+			arg5 = args[5].([]gocloak.Role)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_DeleteClientRolesFromUser_Call) Return(err error) *MockClient_DeleteClientRolesFromUser_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_DeleteClientRolesFromUser_Call) RunAndReturn(run func(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error) *MockClient_DeleteClientRolesFromUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteUser provides a mock function for the type MockClient
 func (_mock *MockClient) DeleteUser(context1 context.Context, s string, s1 string, s2 string) error {
 	ret := _mock.Called(context1, s, s1, s2)
