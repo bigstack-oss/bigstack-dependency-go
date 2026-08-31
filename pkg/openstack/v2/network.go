@@ -126,6 +126,18 @@ func (h *Helper) CreateSubnet(opts subnets.CreateOpts) (*subnets.Subnet, error) 
 	return subnets.Create(ctx, h.Network, opts).Extract()
 }
 
+func (h *Helper) GetSubnet(id string) (*subnets.Subnet, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return subnets.Get(ctx, h.Network, id).Extract()
+}
+
+func (h *Helper) UpdateSubnet(id string, opts subnets.UpdateOpts) (*subnets.Subnet, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return subnets.Update(ctx, h.Network, id, opts).Extract()
+}
+
 func (h *Helper) DeleteSubnet(id string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
@@ -177,6 +189,12 @@ func (h *Helper) AttachNetworkToRouter(id string, opts routers.AddInterfaceOpts)
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
 	defer cancel()
 	return routers.AddInterface(ctx, h.Network, id, opts).Extract()
+}
+
+func (h *Helper) AddRouterTag(id, tag string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(30))
+	defer cancel()
+	return attributestags.Add(ctx, h.Network, "routers", id, tag).Err
 }
 
 func (h *Helper) DeleteRouter(id string) error {
