@@ -52,6 +52,7 @@ type Client interface {
 	CreateGroup(ctx context.Context, token string, realm string, group gocloak.Group) (string, error)
 	CreateChildGroup(ctx context.Context, token string, realm string, groupID string, group gocloak.Group) (string, error)
 	GetUserGroups(ctx context.Context, token string, realm string, userID string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
+	GetGroupMembers(ctx context.Context, token string, realm string, groupID string, params gocloak.GetGroupsParams) ([]*gocloak.User, error)
 	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	DeleteUserFromGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	GetClientRolesByUserID(ctx context.Context, token string, realm string, idOfClient string, userID string) ([]*gocloak.Role, error)
@@ -400,6 +401,39 @@ func (h *Helper) GetUserGroups(realm, userID string) ([]*gocloak.Group, error) {
 		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 		defer cancel()
 		return h.Client.GetUserGroups(ctx, h.Token, realm, userID, p)
+	}, gocloak.GetGroupsParams{})
+}
+
+func paginateGroupMembers(fetch func(gocloak.GetGroupsParams) ([]*gocloak.User, error), params gocloak.GetGroupsParams) ([]*gocloak.User, error) {
+	if params.Max != nil {
+		return fetch(params)
+	}
+
+	var all []*gocloak.User
+	first := 0
+	for {
+		page := params
+		page.First = gocloak.IntP(first)
+		page.Max = gocloak.IntP(groupsPageSize)
+
+		got, err := fetch(page)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, got...)
+		if len(got) < groupsPageSize {
+			return all, nil
+		}
+		first += groupsPageSize
+	}
+}
+
+func (h *Helper) GetGroupMembers(realm, groupID string) ([]*gocloak.User, error) {
+	return paginateGroupMembers(func(p gocloak.GetGroupsParams) ([]*gocloak.User, error) {
+		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+		defer cancel()
+		return h.Client.GetGroupMembers(ctx, h.Token, realm, groupID, p)
 	}, gocloak.GetGroupsParams{})
 }
 

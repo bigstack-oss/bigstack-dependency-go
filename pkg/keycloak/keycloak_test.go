@@ -378,6 +378,85 @@ func TestHelperGetUserGroups(t *testing.T) {
 	}
 }
 
+func TestPaginateGroupMembers(t *testing.T) {
+	t.Run("Should fetch a single page as-is when the caller already set Max", func(t *testing.T) {
+		calls := 0
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.User, error) {
+			calls++
+			return []*gocloak.User{{Username: strPtr("alice")}}, nil
+		}
+
+		got, err := paginateGroupMembers(fetch, gocloak.GetGroupsParams{Max: gocloak.IntP(10)})
+
+		require.NoError(t, err)
+		require.Equal(t, 1, calls)
+		require.Len(t, got, 1)
+	})
+
+	t.Run("Should keep paging while pages come back full, and stop on a short page", func(t *testing.T) {
+		var seenFirsts []int
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.User, error) {
+			seenFirsts = append(seenFirsts, *p.First)
+			if *p.First == 0 {
+				return make([]*gocloak.User, groupsPageSize), nil
+			}
+			return []*gocloak.User{{Username: strPtr("last")}}, nil
+		}
+
+		got, err := paginateGroupMembers(fetch, gocloak.GetGroupsParams{})
+
+		require.NoError(t, err)
+		require.Equal(t, []int{0, groupsPageSize}, seenFirsts)
+		require.Len(t, got, groupsPageSize+1)
+	})
+
+	t.Run("Should propagate an error from any page", func(t *testing.T) {
+		errBoom := errors.New("boom")
+		fetch := func(p gocloak.GetGroupsParams) ([]*gocloak.User, error) {
+			return nil, errBoom
+		}
+
+		_, err := paginateGroupMembers(fetch, gocloak.GetGroupsParams{})
+
+		require.ErrorIs(t, err, errBoom)
+	})
+}
+
+func TestHelperGetGroupMembers(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		members       []*gocloak.User
+		fetchError    error
+		expectedError error
+	}{
+		{
+			name:          "Should propagate an error fetching the group's members",
+			fetchError:    errBoom,
+			expectedError: errBoom,
+		},
+		{
+			name:    "Should return the group's members",
+			members: []*gocloak.User{{Username: strPtr("alice")}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("GetGroupMembers", mock.Anything, mock.Anything, "master", "group-id", mock.Anything).
+				Return(tc.members, tc.fetchError)
+
+			h := &Helper{Client: client}
+			got, err := h.GetGroupMembers("master", "group-id")
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.members, got)
+		})
+	}
+}
+
 func TestHelperCheckLoginUser(t *testing.T) {
 	errBoom := errors.New("boom")
 
