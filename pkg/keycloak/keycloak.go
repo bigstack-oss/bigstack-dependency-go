@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -17,6 +18,10 @@ var (
 	helper *Helper
 	once   sync.Once
 )
+
+// ErrUserNotFound is returned by Helper.GetUser when no user matches, distinguishing
+// that case from a transport/auth failure so callers can branch on it with errors.Is.
+var ErrUserNotFound = errors.New("user not found")
 
 type Client interface {
 	RestyClient() *resty.Client
@@ -271,18 +276,18 @@ func (h *Helper) CreateUser(realm string, user gocloak.User) (string, error) {
 func (h *Helper) GetUser(realm, name string) (*gocloak.User, error) {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
-	users, err := h.Client.GetUsers(ctx, h.Token, realm, gocloak.GetUsersParams{})
+	users, err := h.Client.GetUsers(ctx, h.Token, realm, gocloak.GetUsersParams{
+		Username: gocloak.StringP(name),
+		Exact:    gocloak.BoolP(true),
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	for _, user := range users {
-		if user.Username != nil && *user.Username == name {
-			return user, nil
-		}
+	if len(users) == 0 {
+		return nil, fmt.Errorf("user %s: %w", name, ErrUserNotFound)
 	}
 
-	return nil, fmt.Errorf("user %s not found", name)
+	return users[0], nil
 }
 
 func (h *Helper) SetPassword(realm, userID, password string) error {
