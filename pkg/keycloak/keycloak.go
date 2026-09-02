@@ -292,6 +292,23 @@ func (h *Helper) GetUser(realm, name string) (*gocloak.User, error) {
 	return users[0], nil
 }
 
+func (h *Helper) GetUserByEmail(realm, email string) (*gocloak.User, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	users, err := h.Client.GetUsers(ctx, h.Token, realm, gocloak.GetUsersParams{
+		Email: gocloak.StringP(email),
+		Exact: gocloak.BoolP(true),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(users) == 0 {
+		return nil, fmt.Errorf("user %s: %w", email, ErrUserNotFound)
+	}
+
+	return users[0], nil
+}
+
 func (h *Helper) SetPassword(realm, userID, password string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()

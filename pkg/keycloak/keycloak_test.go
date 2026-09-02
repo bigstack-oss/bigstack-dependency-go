@@ -626,6 +626,50 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
+func TestGetUserByEmail(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		users         []*gocloak.User
+		fetchError    error
+		expectedUser  *gocloak.User
+		expectedError error
+	}{
+		{
+			name:          "Should propagate an error fetching users",
+			fetchError:    errBoom,
+			expectedError: errBoom,
+		},
+		{
+			name:          "Should return ErrUserNotFound when no user matches",
+			users:         []*gocloak.User{},
+			expectedError: ErrUserNotFound,
+		},
+		{
+			name:         "Should return the matching user",
+			users:        []*gocloak.User{{Email: strPtr("alice@example.com")}},
+			expectedUser: &gocloak.User{Email: strPtr("alice@example.com")},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("GetUsers", mock.Anything, mock.Anything, "master", gocloak.GetUsersParams{
+				Email: strPtr("alice@example.com"),
+				Exact: gocloak.BoolP(true),
+			}).Return(tc.users, tc.fetchError)
+
+			h := &Helper{Client: client}
+			got, err := h.GetUserByEmail("master", "alice@example.com")
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.expectedUser, got)
+		})
+	}
+}
+
 func TestLoginServiceAccount(t *testing.T) {
 	errBoom := errors.New("boom")
 
