@@ -897,6 +897,75 @@ func (_c *MockClient_DeleteUserFromGroup_Call) RunAndReturn(run func(ctx context
 	return _c
 }
 
+// ExecuteActionsEmail provides a mock function for the type MockClient
+func (_mock *MockClient) ExecuteActionsEmail(ctx context.Context, token string, realm string, params gocloak.ExecuteActionsEmail) error {
+	ret := _mock.Called(ctx, token, realm, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecuteActionsEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, gocloak.ExecuteActionsEmail) error); ok {
+		r0 = returnFunc(ctx, token, realm, params)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_ExecuteActionsEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecuteActionsEmail'
+type MockClient_ExecuteActionsEmail_Call struct {
+	*mock.Call
+}
+
+// ExecuteActionsEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - params gocloak.ExecuteActionsEmail
+func (_e *MockClient_Expecter) ExecuteActionsEmail(ctx any, token any, realm any, params any) *MockClient_ExecuteActionsEmail_Call {
+	return &MockClient_ExecuteActionsEmail_Call{Call: _e.mock.On("ExecuteActionsEmail", ctx, token, realm, params)}
+}
+
+func (_c *MockClient_ExecuteActionsEmail_Call) Run(run func(ctx context.Context, token string, realm string, params gocloak.ExecuteActionsEmail)) *MockClient_ExecuteActionsEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 gocloak.ExecuteActionsEmail
+		if args[3] != nil {
+			arg3 = args[3].(gocloak.ExecuteActionsEmail)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_ExecuteActionsEmail_Call) Return(err error) *MockClient_ExecuteActionsEmail_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_ExecuteActionsEmail_Call) RunAndReturn(run func(ctx context.Context, token string, realm string, params gocloak.ExecuteActionsEmail) error) *MockClient_ExecuteActionsEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetClientRole provides a mock function for the type MockClient
 func (_mock *MockClient) GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error) {
 	ret := _mock.Called(ctx, token, realm, idOfClient, roleName)

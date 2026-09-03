@@ -40,6 +40,7 @@ type Client interface {
 	GetClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) (*gocloak.Role, error)
 	AddClientRolesToUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
 	DeleteClientRolesFromUser(ctx context.Context, token string, realm string, idOfClient string, userID string, roles []gocloak.Role) error
+	ExecuteActionsEmail(ctx context.Context, token, realm string, params gocloak.ExecuteActionsEmail) error
 
 	/* Client mirrors methods gocloak.GoCloak already implements -- there's no
 	 * implementation here because gocloak's real client satisfies this interface
@@ -294,6 +295,19 @@ func (h *Helper) SetPassword(realm, userID, password string) error {
 	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
 	defer cancel()
 	return h.Client.SetPassword(ctx, h.Token, userID, realm, password, false)
+}
+
+func (h *Helper) ExecuteActionsEmail(realm, userID string, actions []string) error {
+	if actions == nil {
+		actions = []string{}
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.ExecuteActionsEmail(ctx, h.Token, realm, gocloak.ExecuteActionsEmail{
+		UserID:  &userID,
+		Actions: &actions,
+	})
 }
 
 func (h *Helper) DeleteUser(realm, userID string) error {

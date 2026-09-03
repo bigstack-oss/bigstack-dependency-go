@@ -668,3 +668,57 @@ func TestSetKeycloakClient(t *testing.T) {
 		})
 	}
 }
+
+func TestHelperExecuteActionsEmail(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name            string
+		actions         []string
+		expectedActions []string
+		clientError     error
+		expectedError   error
+	}{
+		{
+			name:            "Should send the given actions when actions is non-nil",
+			actions:         []string{"UPDATE_PASSWORD"},
+			expectedActions: []string{"UPDATE_PASSWORD"},
+			clientError:     nil,
+			expectedError:   nil,
+		},
+		{
+			name:            "Should send an empty slice instead of nil when actions is nil",
+			actions:         nil,
+			expectedActions: []string{},
+			clientError:     nil,
+			expectedError:   nil,
+		},
+		{
+			name:            "Should propagate an error when the client call fails",
+			actions:         []string{"UPDATE_PASSWORD"},
+			expectedActions: []string{"UPDATE_PASSWORD"},
+			clientError:     errBoom,
+			expectedError:   errBoom,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("ExecuteActionsEmail", mock.Anything, mock.Anything, "master", mock.Anything).
+				Run(func(args mock.Arguments) {
+					params := args.Get(3).(gocloak.ExecuteActionsEmail)
+					require.NotNil(t, params.UserID)
+					require.Equal(t, "user-id", *params.UserID)
+					require.NotNil(t, params.Actions)
+					require.Equal(t, tc.expectedActions, *params.Actions)
+				}).
+				Return(tc.clientError)
+
+			h := &Helper{Client: client}
+			err := h.ExecuteActionsEmail("master", "user-id", tc.actions)
+
+			require.ErrorIs(t, err, tc.expectedError)
+		})
+	}
+}
