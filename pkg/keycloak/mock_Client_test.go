@@ -1870,6 +1870,98 @@ func (_c *MockClient_GetUsers_Call) RunAndReturn(run func(context1 context.Conte
 	return _c
 }
 
+// GetUsersByClientRoleName provides a mock function for the type MockClient
+func (_mock *MockClient) GetUsersByClientRoleName(ctx context.Context, token string, realm string, idOfClient string, roleName string, params gocloak.GetUsersByRoleParams) ([]*gocloak.User, error) {
+	ret := _mock.Called(ctx, token, realm, idOfClient, roleName, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUsersByClientRoleName")
+	}
+
+	var r0 []*gocloak.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, gocloak.GetUsersByRoleParams) ([]*gocloak.User, error)); ok {
+		return returnFunc(ctx, token, realm, idOfClient, roleName, params)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, gocloak.GetUsersByRoleParams) []*gocloak.User); ok {
+		r0 = returnFunc(ctx, token, realm, idOfClient, roleName, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, string, gocloak.GetUsersByRoleParams) error); ok {
+		r1 = returnFunc(ctx, token, realm, idOfClient, roleName, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_GetUsersByClientRoleName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUsersByClientRoleName'
+type MockClient_GetUsersByClientRoleName_Call struct {
+	*mock.Call
+}
+
+// GetUsersByClientRoleName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - roleName string
+//   - params gocloak.GetUsersByRoleParams
+func (_e *MockClient_Expecter) GetUsersByClientRoleName(ctx any, token any, realm any, idOfClient any, roleName any, params any) *MockClient_GetUsersByClientRoleName_Call {
+	return &MockClient_GetUsersByClientRoleName_Call{Call: _e.mock.On("GetUsersByClientRoleName", ctx, token, realm, idOfClient, roleName, params)}
+}
+
+func (_c *MockClient_GetUsersByClientRoleName_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, roleName string, params gocloak.GetUsersByRoleParams)) *MockClient_GetUsersByClientRoleName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 gocloak.GetUsersByRoleParams
+		if args[5] != nil {
+			arg5 = args[5].(gocloak.GetUsersByRoleParams)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_GetUsersByClientRoleName_Call) Return(users []*gocloak.User, err error) *MockClient_GetUsersByClientRoleName_Call {
+	_c.Call.Return(users, err)
+	return _c
+}
+
+func (_c *MockClient_GetUsersByClientRoleName_Call) RunAndReturn(run func(ctx context.Context, token string, realm string, idOfClient string, roleName string, params gocloak.GetUsersByRoleParams) ([]*gocloak.User, error)) *MockClient_GetUsersByClientRoleName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Login provides a mock function for the type MockClient
 func (_mock *MockClient) Login(context1 context.Context, s string, s1 string, s2 string, s3 string, s4 string) (*gocloak.JWT, error) {
 	ret := _mock.Called(context1, s, s1, s2, s3, s4)

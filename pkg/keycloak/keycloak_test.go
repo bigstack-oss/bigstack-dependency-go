@@ -582,6 +582,114 @@ func TestHasClientRole(t *testing.T) {
 	}
 }
 
+func TestGetUsersByClientRoleName(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		users         []*gocloak.User
+		fetchError    error
+		expectedError error
+	}{
+		{
+			name:          "Should propagate an error fetching the role's users",
+			fetchError:    errBoom,
+			expectedError: errBoom,
+		},
+		{
+			name: "Should return every user holding the role",
+			users: []*gocloak.User{
+				{Username: strPtr("alice")},
+				{Username: strPtr("bob")},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("GetUsersByClientRoleName", mock.Anything, mock.Anything, "master", "client-id", "super-admin", mock.Anything).
+				Return(tc.users, tc.fetchError)
+
+			h := &Helper{Client: client}
+			got, err := h.GetUsersByClientRoleName("master", "client-id", "super-admin")
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.users, got)
+		})
+	}
+}
+
+func TestPaginateClientRoleUsers(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name           string
+		params         gocloak.GetUsersByRoleParams
+		pages          [][]*gocloak.User
+		pageError      error
+		expectedCalls  int
+		expectedFirsts []int
+		expectedLen    int
+		expectedError  error
+	}{
+		{
+			name:           "Should fetch a single page as-is when the caller already set Max",
+			params:         gocloak.GetUsersByRoleParams{Max: gocloak.IntP(10)},
+			pages:          [][]*gocloak.User{{{Username: strPtr("alice")}}},
+			pageError:      nil,
+			expectedCalls:  1,
+			expectedFirsts: nil,
+			expectedLen:    1,
+			expectedError:  nil,
+		},
+		{
+			name:           "Should keep paging while pages come back full, and stop on a short page",
+			params:         gocloak.GetUsersByRoleParams{},
+			pages:          [][]*gocloak.User{make([]*gocloak.User, groupsPageSize), {{Username: strPtr("last")}}},
+			pageError:      nil,
+			expectedCalls:  2,
+			expectedFirsts: []int{0, groupsPageSize},
+			expectedLen:    groupsPageSize + 1,
+			expectedError:  nil,
+		},
+		{
+			name:           "Should propagate an error from any page",
+			params:         gocloak.GetUsersByRoleParams{},
+			pages:          nil,
+			pageError:      errBoom,
+			expectedCalls:  1,
+			expectedFirsts: []int{0},
+			expectedLen:    0,
+			expectedError:  errBoom,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			var seenFirsts []int
+			fetch := func(p gocloak.GetUsersByRoleParams) ([]*gocloak.User, error) {
+				if p.First != nil {
+					seenFirsts = append(seenFirsts, *p.First)
+				}
+				calls++
+				if tc.pageError != nil {
+					return nil, tc.pageError
+				}
+				return tc.pages[calls-1], nil
+			}
+
+			got, err := paginateClientRoleUsers(fetch, tc.params)
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.expectedCalls, calls)
+			require.Equal(t, tc.expectedFirsts, seenFirsts)
+			require.Len(t, got, tc.expectedLen)
+		})
+	}
+}
+
 func TestGetUser(t *testing.T) {
 	errBoom := errors.New("boom")
 

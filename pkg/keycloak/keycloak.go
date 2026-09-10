@@ -56,6 +56,7 @@ type Client interface {
 	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	DeleteUserFromGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
 	GetClientRolesByUserID(ctx context.Context, token string, realm string, idOfClient string, userID string) ([]*gocloak.Role, error)
+	GetUsersByClientRoleName(ctx context.Context, token string, realm string, idOfClient string, roleName string, params gocloak.GetUsersByRoleParams) ([]*gocloak.User, error)
 	GetRealmRole(ctx context.Context, token string, realm string, roleName string) (*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token string, realm string, userID string, roles []gocloak.Role) error
 	LogoutUserSession(context.Context, string, string, string) error
@@ -566,4 +567,37 @@ func (h *Helper) HasClientRole(realm, clientID, userID, roleName string) (bool, 
 	}
 
 	return false, nil
+}
+
+func paginateClientRoleUsers(fetch func(gocloak.GetUsersByRoleParams) ([]*gocloak.User, error), params gocloak.GetUsersByRoleParams) ([]*gocloak.User, error) {
+	if params.Max != nil {
+		return fetch(params)
+	}
+
+	var all []*gocloak.User
+	first := 0
+	for {
+		page := params
+		page.First = gocloak.IntP(first)
+		page.Max = gocloak.IntP(groupsPageSize)
+
+		got, err := fetch(page)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, got...)
+		if len(got) < groupsPageSize {
+			return all, nil
+		}
+		first += groupsPageSize
+	}
+}
+
+func (h *Helper) GetUsersByClientRoleName(realm, clientID, roleName string) ([]*gocloak.User, error) {
+	return paginateClientRoleUsers(func(p gocloak.GetUsersByRoleParams) ([]*gocloak.User, error) {
+		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+		defer cancel()
+		return h.Client.GetUsersByClientRoleName(ctx, h.Token, realm, clientID, roleName, p)
+	}, gocloak.GetUsersByRoleParams{})
 }
