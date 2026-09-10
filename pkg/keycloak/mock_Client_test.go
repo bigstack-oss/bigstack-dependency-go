@@ -1458,6 +1458,86 @@ func (_c *MockClient_GetGroup_Call) RunAndReturn(run func(ctx context.Context, t
 	return _c
 }
 
+// GetGroupByPath provides a mock function for the type MockClient
+func (_mock *MockClient) GetGroupByPath(ctx context.Context, token string, realm string, groupPath string) (*gocloak.Group, error) {
+	ret := _mock.Called(ctx, token, realm, groupPath)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGroupByPath")
+	}
+
+	var r0 *gocloak.Group
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*gocloak.Group, error)); ok {
+		return returnFunc(ctx, token, realm, groupPath)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *gocloak.Group); ok {
+		r0 = returnFunc(ctx, token, realm, groupPath)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.Group)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, token, realm, groupPath)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_GetGroupByPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGroupByPath'
+type MockClient_GetGroupByPath_Call struct {
+	*mock.Call
+}
+
+// GetGroupByPath is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - groupPath string
+func (_e *MockClient_Expecter) GetGroupByPath(ctx any, token any, realm any, groupPath any) *MockClient_GetGroupByPath_Call {
+	return &MockClient_GetGroupByPath_Call{Call: _e.mock.On("GetGroupByPath", ctx, token, realm, groupPath)}
+}
+
+func (_c *MockClient_GetGroupByPath_Call) Run(run func(ctx context.Context, token string, realm string, groupPath string)) *MockClient_GetGroupByPath_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_GetGroupByPath_Call) Return(group *gocloak.Group, err error) *MockClient_GetGroupByPath_Call {
+	_c.Call.Return(group, err)
+	return _c
+}
+
+func (_c *MockClient_GetGroupByPath_Call) RunAndReturn(run func(ctx context.Context, token string, realm string, groupPath string) (*gocloak.Group, error)) *MockClient_GetGroupByPath_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGroupMembers provides a mock function for the type MockClient
 func (_mock *MockClient) GetGroupMembers(ctx context.Context, token string, realm string, groupID string, params gocloak.GetGroupsParams) ([]*gocloak.User, error) {
 	ret := _mock.Called(ctx, token, realm, groupID, params)

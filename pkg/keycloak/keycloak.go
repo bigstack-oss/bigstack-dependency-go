@@ -49,6 +49,7 @@ type Client interface {
 	 */
 	GetGroups(ctx context.Context, token string, realm string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
 	GetGroup(ctx context.Context, token string, realm string, groupID string) (*gocloak.Group, error)
+	GetGroupByPath(ctx context.Context, token string, realm string, groupPath string) (*gocloak.Group, error)
 	CreateGroup(ctx context.Context, token string, realm string, group gocloak.Group) (string, error)
 	CreateChildGroup(ctx context.Context, token string, realm string, groupID string, group gocloak.Group) (string, error)
 	GetUserGroups(ctx context.Context, token string, realm string, userID string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
@@ -412,6 +413,12 @@ func (h *Helper) GetGroups(realm string, params gocloak.GetGroupsParams) ([]*goc
 		defer cancel()
 		return h.Client.GetGroups(ctx, h.Token, realm, p)
 	}, params)
+}
+
+func (h *Helper) GetGroupByPath(realm, path string) (*gocloak.Group, error) {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.GetGroupByPath(ctx, h.Token, realm, path)
 }
 
 func (h *Helper) GetUserGroups(realm, userID string) ([]*gocloak.Group, error) {

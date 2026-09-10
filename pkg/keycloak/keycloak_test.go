@@ -343,6 +343,41 @@ func TestPaginateGroups(t *testing.T) {
 	})
 }
 
+func TestHelperGetGroupByPath(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		group         *gocloak.Group
+		fetchError    error
+		expectedError error
+	}{
+		{
+			name:          "Should propagate an error fetching the group by path",
+			fetchError:    errBoom,
+			expectedError: errBoom,
+		},
+		{
+			name:  "Should return the group at the given path",
+			group: groupAt("g1", "admin", "/cubecmp/PROJ001/admin"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("GetGroupByPath", mock.Anything, mock.Anything, "master", "/cubecmp/PROJ001/admin").
+				Return(tc.group, tc.fetchError)
+
+			h := &Helper{Client: client}
+			got, err := h.GetGroupByPath("master", "/cubecmp/PROJ001/admin")
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.group, got)
+		})
+	}
+}
+
 func TestHelperGetUserGroups(t *testing.T) {
 	errBoom := errors.New("boom")
 
