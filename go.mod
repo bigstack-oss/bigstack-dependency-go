@@ -23,7 +23,7 @@ require (
 	github.com/slack-go/slack v0.29.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wneessen/go-mail v0.8.1
-	go-micro.dev/v5 v5.30.0
+	go-micro.dev/v5 v5.3.0
 	go.mongodb.org/mongo-driver v1.17.9
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.55.0
