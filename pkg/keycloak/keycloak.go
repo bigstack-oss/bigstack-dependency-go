@@ -317,17 +317,30 @@ func (h *Helper) SetPassword(realm, userID, password string) error {
 	return h.Client.SetPassword(ctx, h.Token, userID, realm, password, false)
 }
 
-func (h *Helper) ExecuteActionsEmail(realm, userID string, actions []string) error {
+func (h *Helper) ExecuteActionsEmail(realm, userID string, actions []string, lifespanSeconds int) error {
 	if actions == nil {
 		actions = []string{}
 	}
 
-	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
-	defer cancel()
-	return h.Client.ExecuteActionsEmail(ctx, h.Token, realm, gocloak.ExecuteActionsEmail{
+	params := gocloak.ExecuteActionsEmail{
 		UserID:  &userID,
 		Actions: &actions,
-	})
+	}
+	/*
+	 * gocloak's Lifespan is *int with `omitempty` -- that only checks
+	 * pointer-nilness, not the pointee's value, so a non-nil pointer to 0
+	 * would still serialize as an explicit lifespan=0 query param and mint
+	 * an already-expired action token. Only set it for a genuinely
+	 * positive value; anything else falls back to Keycloak's own realm
+	 * default, matching this method's pre-lifespan-parameter behavior.
+	 */
+	if lifespanSeconds > 0 {
+		params.Lifespan = gocloak.IntP(lifespanSeconds)
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.ExecuteActionsEmail(ctx, h.Token, realm, params)
 }
 
 func (h *Helper) DeleteUser(realm, userID string) error {
