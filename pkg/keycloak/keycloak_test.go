@@ -939,32 +939,67 @@ func TestHelperExecuteActionsEmail(t *testing.T) {
 	errBoom := errors.New("boom")
 
 	tests := []struct {
-		name            string
-		actions         []string
-		expectedActions []string
-		clientError     error
-		expectedError   error
+		name             string
+		actions          []string
+		expectedActions  []string
+		lifespanSeconds  int
+		expectedLifespan *int
+		clientError      error
+		expectedError    error
 	}{
 		{
-			name:            "Should send the given actions when actions is non-nil",
-			actions:         []string{"UPDATE_PASSWORD"},
-			expectedActions: []string{"UPDATE_PASSWORD"},
-			clientError:     nil,
-			expectedError:   nil,
+			name:             "Should send the given actions and lifespan when actions is non-nil",
+			actions:          []string{"UPDATE_PASSWORD"},
+			expectedActions:  []string{"UPDATE_PASSWORD"},
+			lifespanSeconds:  300,
+			expectedLifespan: gocloak.IntP(300),
+			clientError:      nil,
+			expectedError:    nil,
 		},
 		{
-			name:            "Should send an empty slice instead of nil when actions is nil",
-			actions:         nil,
-			expectedActions: []string{},
-			clientError:     nil,
-			expectedError:   nil,
+			name:             "Should send an empty slice instead of nil when actions is nil",
+			actions:          nil,
+			expectedActions:  []string{},
+			lifespanSeconds:  300,
+			expectedLifespan: gocloak.IntP(300),
+			clientError:      nil,
+			expectedError:    nil,
 		},
 		{
-			name:            "Should propagate an error when the client call fails",
-			actions:         []string{"UPDATE_PASSWORD"},
-			expectedActions: []string{"UPDATE_PASSWORD"},
-			clientError:     errBoom,
-			expectedError:   errBoom,
+			name:             "Should thread through a different lifespan value rather than a hardcoded one",
+			actions:          []string{"UPDATE_PASSWORD"},
+			expectedActions:  []string{"UPDATE_PASSWORD"},
+			lifespanSeconds:  600,
+			expectedLifespan: gocloak.IntP(600),
+			clientError:      nil,
+			expectedError:    nil,
+		},
+		{
+			name:             "Should leave Lifespan nil when lifespanSeconds is zero, instead of sending an already-expired lifespan=0",
+			actions:          []string{"UPDATE_PASSWORD"},
+			expectedActions:  []string{"UPDATE_PASSWORD"},
+			lifespanSeconds:  0,
+			expectedLifespan: nil,
+			clientError:      nil,
+			expectedError:    nil,
+		},
+		{
+			name:             "Should leave Lifespan nil when lifespanSeconds is negative",
+			actions:          []string{"UPDATE_PASSWORD"},
+			expectedActions:  []string{"UPDATE_PASSWORD"},
+			lifespanSeconds:  -1,
+			expectedLifespan: nil,
+			clientError:      nil,
+			expectedError:    nil,
+		},
+		{
+			name:             "Should propagate an error when the client call fails",
+			actions:          []string{"UPDATE_PASSWORD"},
+			expectedActions:  []string{"UPDATE_PASSWORD"},
+			lifespanSeconds:  300,
+			expectedLifespan: gocloak.IntP(300),
+			clientError:      errBoom,
+			expectedError:    errBoom,
 		},
 	}
 
@@ -978,11 +1013,17 @@ func TestHelperExecuteActionsEmail(t *testing.T) {
 					require.Equal(t, "user-id", *params.UserID)
 					require.NotNil(t, params.Actions)
 					require.Equal(t, tc.expectedActions, *params.Actions)
+					if tc.expectedLifespan == nil {
+						require.Nil(t, params.Lifespan)
+					} else {
+						require.NotNil(t, params.Lifespan)
+						require.Equal(t, *tc.expectedLifespan, *params.Lifespan)
+					}
 				}).
 				Return(tc.clientError)
 
 			h := &Helper{Client: client}
-			err := h.ExecuteActionsEmail("master", "user-id", tc.actions)
+			err := h.ExecuteActionsEmail("master", "user-id", tc.actions, tc.lifespanSeconds)
 
 			require.ErrorIs(t, err, tc.expectedError)
 		})
