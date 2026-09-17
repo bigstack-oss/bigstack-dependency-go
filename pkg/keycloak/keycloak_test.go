@@ -935,6 +935,106 @@ func TestSetKeycloakClient(t *testing.T) {
 	}
 }
 
+func TestNewHelperWithoutCredentials(t *testing.T) {
+	tests := []struct {
+		name          string
+		opts          []Option
+		expectedError string
+	}{
+		{
+			name:          "Should return an error if scheme is empty",
+			opts:          []Option{Ip("keycloak"), Port(80), Path("auth"), Realm("master")},
+			expectedError: "keycloak scheme is empty",
+		},
+		{
+			name:          "Should return an error if ip is empty",
+			opts:          []Option{Scheme("http"), Port(80), Path("auth"), Realm("master")},
+			expectedError: "keycloak ip is empty",
+		},
+		{
+			name:          "Should return an error if port is empty",
+			opts:          []Option{Scheme("http"), Ip("keycloak"), Path("auth"), Realm("master")},
+			expectedError: "keycloak port is empty",
+		},
+		{
+			name:          "Should return an error if path is empty",
+			opts:          []Option{Scheme("http"), Ip("keycloak"), Port(80), Realm("master")},
+			expectedError: "keycloak path is empty",
+		},
+		{
+			name:          "Should return an error if realm is empty",
+			opts:          []Option{Scheme("http"), Ip("keycloak"), Port(80), Path("auth")},
+			expectedError: "keycloak realm is empty",
+		},
+		{
+			name: "Should succeed with no credentials set",
+			opts: []Option{Scheme("http"), Ip("keycloak"), Port(80), Path("auth"), Realm("master")},
+		},
+		{
+			name: "Should succeed even when credentials happen to be set",
+			opts: []Option{Scheme("http"), Ip("keycloak"), Port(80), Path("auth"), Realm("master"), Username("admin"), Password("admin")},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h, err := NewHelperWithoutCredentials(tc.opts...)
+
+			if tc.expectedError == "" {
+				require.NoError(t, err)
+				require.NotNil(t, h.Client)
+			} else {
+				require.EqualError(t, err, tc.expectedError)
+				require.Nil(t, h)
+			}
+		})
+	}
+}
+
+func TestCheckLoginUserWithHelperBuiltWithoutCredentials(t *testing.T) {
+	tests := []struct {
+		name     string
+		username string
+		password string
+		client   ClientCredentials
+		token    *gocloak.JWT
+		expected *gocloak.JWT
+	}{
+		{
+			name:     "Should let CheckLoginUser use call-time credentials when NewHelperWithoutCredentials was built from network-location options alone",
+			username: "user",
+			password: "pass",
+			client:   DefaultAdmin,
+			token:    &gocloak.JWT{AccessToken: "access-token"},
+			expected: &gocloak.JWT{AccessToken: "access-token"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h, err := NewHelperWithoutCredentials(
+				Scheme("http"),
+				Ip("keycloak"),
+				Port(80),
+				Path("auth"),
+				Realm("master"),
+			)
+			require.NoError(t, err)
+			require.NotNil(t, h.Client)
+
+			client := NewMockClient(t)
+			client.On("Login", mock.Anything, tc.client.ID, tc.client.Secret, "master", tc.username, tc.password).
+				Return(tc.token, nil)
+			h.Client = client
+
+			got, err := h.CheckLoginUser(tc.username, tc.password, tc.client)
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
+
 func TestHelperExecuteActionsEmail(t *testing.T) {
 	errBoom := errors.New("boom")
 

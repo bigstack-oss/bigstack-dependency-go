@@ -92,6 +92,79 @@ func NewHelper(opts ...Option) (*Helper, error) {
 	return h, nil
 }
 
+/*
+ * HelperWithoutCredentials is a keycloak client for call patterns like
+ * CheckLoginUser that take login credentials as call-time parameters rather
+ * than pre-configured Options. Unlike Helper, it has no LoginAdmin or
+ * LoginServiceAccount methods, so a caller can't accidentally try to log in
+ * with Options-level credentials that were never required to construct it --
+ * that misuse is a compile error here instead of a runtime one.
+ */
+type HelperWithoutCredentials struct {
+	Client
+	Options
+}
+
+func NewHelperWithoutCredentials(opts ...Option) (*HelperWithoutCredentials, error) {
+	initedOpts := initOptions(opts)
+	h := &HelperWithoutCredentials{Options: *initedOpts}
+
+	if h.Options.Scheme == "" {
+		return nil, fmt.Errorf("keycloak scheme is empty")
+	}
+
+	if h.Options.Ip == "" {
+		return nil, fmt.Errorf("keycloak ip is empty")
+	}
+
+	if h.Options.Port == 0 {
+		return nil, fmt.Errorf("keycloak port is empty")
+	}
+
+	if h.Options.Path == "" {
+		return nil, fmt.Errorf("keycloak path is empty")
+	}
+
+	if h.Options.Realm == "" {
+		return nil, fmt.Errorf("keycloak realm is empty")
+	}
+
+	h.Client = gocloak.NewClient(h.genKeycloakUrl())
+	return h, nil
+}
+
+func (h *HelperWithoutCredentials) genKeycloakUrl() string {
+	u := url.URL{}
+	u.Scheme = h.Options.Scheme
+	u.Host = fmt.Sprintf("%s:%d", h.Options.Ip, h.Options.Port)
+	u.Path = h.Options.Path
+	return u.String()
+}
+
+func (h *HelperWithoutCredentials) CheckLoginUser(username, password string, client ClientCredentials) (*gocloak.JWT, error) {
+	if h.Options.TlsInsecureSkipVerify {
+		h.Client.RestyClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	token, err := h.Client.Login(
+		ctx,
+		client.ID,
+		client.Secret,
+		h.Options.Realm,
+		username,
+		password,
+	)
+	if err != nil {
+		// %w (not LoginAdmin's %s) so callers can errors.As into gocloak's *APIError
+		// to tell an invalid-credentials response apart from an unexpected failure.
+		return nil, fmt.Errorf("keycloak login failed: %w", err)
+	}
+
+	return token, nil
+}
+
 func NewGlobalHelper(opts ...Option) error {
 	var err error
 	once.Do(func() {
