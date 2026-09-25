@@ -568,6 +568,18 @@ func (h *Helper) GetOrCreateGroupPath(realm, path string) (*gocloak.Group, error
 		}
 	}
 
+	return h.GetOrCreateGroupPathSegments(realm, segments)
+}
+
+/*
+ * GetOrCreateGroupPathSegments is GetOrCreateGroupPath's own walk, taking each level's
+ * name directly instead of a single "/"-joined path string. A caller that already holds
+ * the segments as separate values (e.g. a product/project/role triple) should call this
+ * instead of joining them into a path and having GetOrCreateGroupPath split it straight
+ * back apart -- joining first only matters when a segment's own value could itself
+ * contain "/", which turns into an extra (wrong) tree level once rejoined and split.
+ */
+func (h *Helper) GetOrCreateGroupPathSegments(realm string, segments []string) (*gocloak.Group, error) {
 	var current *gocloak.Group
 	for _, name := range segments {
 		child, err := h.findChildGroup(realm, current, name)

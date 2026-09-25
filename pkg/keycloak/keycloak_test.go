@@ -156,6 +156,66 @@ func TestGetOrCreateGroupPath(t *testing.T) {
 	}
 }
 
+func TestGetOrCreateGroupPathSegments(t *testing.T) {
+	tests := []struct {
+		name      string
+		segments  []string
+		mockSetup func(client *MockClient)
+		expected  *gocloak.Group
+	}{
+		{
+			name:     "Should walk every segment without re-splitting a segment that itself contains a slash",
+			segments: []string{"cmp", "PROJ001", "billing/viewer"},
+			mockSetup: func(client *MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
+					Return(&gocloak.Group{
+						ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"),
+						SubGroups: &[]gocloak.Group{*groupAt("proj-id", "PROJ001", "/cmp/PROJ001")},
+					}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "proj-id").
+					Return(&gocloak.Group{
+						ID: strPtr("proj-id"), Name: strPtr("PROJ001"), Path: strPtr("/cmp/PROJ001"),
+						SubGroups: &[]gocloak.Group{*groupAt("role-id", "billing/viewer", "/cmp/PROJ001/billing/viewer")},
+					}, nil)
+			},
+			expected: groupAt("role-id", "billing/viewer", "/cmp/PROJ001/billing/viewer"),
+		},
+		{
+			name:     "Should create a single-segment path not found at the top level, with Path populated",
+			segments: []string{"cmp"},
+			mockSetup: func(client *MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{}, nil)
+				client.On("CreateGroup", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return("cmp-id", nil)
+			},
+			expected: groupAt("cmp-id", "cmp", "/cmp"),
+		},
+		{
+			name:     "Should return an empty result for an empty segment list without calling Keycloak",
+			segments: nil,
+			expected: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			if tc.mockSetup != nil {
+				tc.mockSetup(client)
+			}
+			h := &Helper{Client: client}
+
+			got, err := h.GetOrCreateGroupPathSegments("master", tc.segments)
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
+
 func TestHelperFindChildGroup_TopLevel(t *testing.T) {
 	tests := []struct {
 		name     string
