@@ -438,6 +438,101 @@ func TestHelperGetGroupByPath(t *testing.T) {
 	}
 }
 
+func TestFindGroupPathSegments(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		segments      []string
+		mockSetup     func(client *MockClient)
+		expected      *gocloak.Group
+		expectedError error
+	}{
+		{
+			name:     "Should return the group when every segment exists",
+			segments: []string{"cmp", "PROJ001", "billing/viewer"},
+			mockSetup: func(client *MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
+					Return(&gocloak.Group{
+						ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"),
+						SubGroups: &[]gocloak.Group{*groupAt("proj-id", "PROJ001", "/cmp/PROJ001")},
+					}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "proj-id").
+					Return(&gocloak.Group{
+						ID: strPtr("proj-id"), Name: strPtr("PROJ001"), Path: strPtr("/cmp/PROJ001"),
+						SubGroups: &[]gocloak.Group{*groupAt("role-id", "billing/viewer", "/cmp/PROJ001/billing/viewer")},
+					}, nil)
+			},
+			expected: groupAt("role-id", "billing/viewer", "/cmp/PROJ001/billing/viewer"),
+		},
+		{
+			name:     "Should return nothing when a segment is absent, without creating it",
+			segments: []string{"cmp", "PROJ001"},
+			mockSetup: func(client *MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{groupAt("cmp-id", "cmp", "/cmp")}, nil)
+				client.On("GetGroup", mock.Anything, mock.Anything, "master", "cmp-id").
+					Return(&gocloak.Group{ID: strPtr("cmp-id"), Name: strPtr("cmp"), Path: strPtr("/cmp"), SubGroups: &[]gocloak.Group{}}, nil)
+			},
+		},
+		{
+			name:     "Should propagate an error looking a segment up",
+			segments: []string{"cmp"},
+			mockSetup: func(client *MockClient) {
+				client.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return(nil, errBoom)
+			},
+			expectedError: errBoom,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			tc.mockSetup(client)
+			h := &Helper{Client: client}
+
+			got, err := h.FindGroupPathSegments("master", tc.segments)
+
+			require.ErrorIs(t, err, tc.expectedError)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
+
+func TestHelperDeleteGroup(t *testing.T) {
+	errBoom := errors.New("boom")
+
+	tests := []struct {
+		name          string
+		deleteError   error
+		expectedError error
+	}{
+		{
+			name:          "Should propagate an error deleting the group",
+			deleteError:   errBoom,
+			expectedError: errBoom,
+		},
+		{
+			name: "Should return no error when the group is deleted",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(t)
+			client.On("DeleteGroup", mock.Anything, mock.Anything, "master", "g1").
+				Return(tc.deleteError)
+
+			h := &Helper{Client: client}
+
+			require.ErrorIs(t, h.DeleteGroup("master", "g1"), tc.expectedError)
+		})
+	}
+}
+
 func TestHelperGetUserGroups(t *testing.T) {
 	errBoom := errors.New("boom")
 

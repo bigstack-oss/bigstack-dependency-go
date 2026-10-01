@@ -52,6 +52,7 @@ type Client interface {
 	GetGroupByPath(ctx context.Context, token string, realm string, groupPath string) (*gocloak.Group, error)
 	CreateGroup(ctx context.Context, token string, realm string, group gocloak.Group) (string, error)
 	CreateChildGroup(ctx context.Context, token string, realm string, groupID string, group gocloak.Group) (string, error)
+	DeleteGroup(ctx context.Context, token string, realm string, groupID string) error
 	GetUserGroups(ctx context.Context, token string, realm string, userID string, params gocloak.GetGroupsParams) ([]*gocloak.Group, error)
 	GetGroupMembers(ctx context.Context, token string, realm string, groupID string, params gocloak.GetGroupsParams) ([]*gocloak.User, error)
 	AddUserToGroup(ctx context.Context, token string, realm string, userID string, groupID string) error
@@ -507,6 +508,12 @@ func (h *Helper) GetGroupByPath(realm, path string) (*gocloak.Group, error) {
 	return h.Client.GetGroupByPath(ctx, h.Token, realm, path)
 }
 
+func (h *Helper) DeleteGroup(realm, groupID string) error {
+	ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
+	defer cancel()
+	return h.Client.DeleteGroup(ctx, h.Token, realm, groupID)
+}
+
 func (h *Helper) GetUserGroups(realm, userID string) ([]*gocloak.Group, error) {
 	return paginateGroups(func(p gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
 		ctx, cancel := context.WithTimeout(wait.CtxSeconds(10))
@@ -591,6 +598,22 @@ func (h *Helper) GetOrCreateGroupPathSegments(realm string, segments []string) (
 			if err != nil {
 				return nil, err
 			}
+		}
+		current = child
+	}
+
+	return current, nil
+}
+
+func (h *Helper) FindGroupPathSegments(realm string, segments []string) (*gocloak.Group, error) {
+	var current *gocloak.Group
+	for _, name := range segments {
+		child, err := h.findChildGroup(realm, current, name)
+		if err != nil {
+			return nil, err
+		}
+		if child == nil {
+			return nil, nil
 		}
 		current = child
 	}
